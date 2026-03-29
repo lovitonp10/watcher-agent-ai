@@ -213,15 +213,19 @@ Context:
         # Build system prompt with optional project context
         system_prompt = """You are an AI research assistant specialized in AI/ML.
 
-TASK: Create a well-structured summary of the articles below.
+TASK: List the 4-5 most recent or interesting articles with their themes in a few words each.
 
-FORMAT YOUR RESPONSE AS:
-1. **Thèmes Principaux** (2-3 phrases sur les tendances générales)
-2. **Highlights** (3-5 points clés, chacun citant un article spécifique par son numéro)
-   - Ex: "🔥 Article #3 (Netflix) présente une nouvelle architecture pour..."
-3. **Recommandations** (1-2 phrases sur ce qui est le plus pertinent pour le projet)
+FORMAT YOUR RESPONSE AS A SIMPLE LIST:
+• Article #X (Source): Theme in 5-8 words
+• Article #Y (Source): Theme in 5-8 words
+• ...
 
-Keep it concise (max 250 words). Always reference article numbers when mentioning specific techniques."""
+Example:
+• Article #1 (ArXiv): Video popularity prediction using multimodal transformers
+• Article #2 (Meta): Instagram Reels recommendation algorithm improvements
+• Article #3 (Netflix): A/B testing framework for video engagement
+
+Keep it ultra-concise. Maximum 4-5 articles. Just list themes, no elaboration."""
 
         if project_context:
             system_prompt += f"\n\n{project_context}"

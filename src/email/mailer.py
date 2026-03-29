@@ -383,7 +383,7 @@ class EmailService:
         <div style='background: white; padding: 28px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);'>
             <div style='display: flex; align-items: center; margin-bottom: 16px;'>
                 <div style='width: 4px; height: 24px; background: linear-gradient(180deg, #f59e0b 0%, #eab308 100%); border-radius: 2px; margin-right: 12px;'></div>
-                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Résumé de la Veille</h2>
+                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Résumé</h2>
             </div>
             <div style='color: #374151; line-height: 1.8; font-size: 15px; white-space: pre-line;'>
 {summary}
