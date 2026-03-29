@@ -1,0 +1,25 @@
+# LLM (Large Language Model) Configuration
+# Non-sensitive LLM parameters (API keys stay in .env)
+
+# LLM Provider
+# Options: "ollama", "openai", "mistral", "anthropic", "groq", "huggingface"
+llm_provider: "ollama"
+
+# Model name (provider-specific)
+# Ollama: "mistral", "llama3", "mixtral", "phi"
+# OpenAI: "gpt-4-turbo-preview", "gpt-4", "gpt-3.5-turbo"
+# Mistral: "mistral-large-latest", "mistral-small-latest"
+# Anthropic: "claude-opus-4-6", "claude-sonnet-4-6"
+# Groq: "mixtral-8x7b-32768", "llama3-70b-8192"
+llm_model: "mistral"
+
+# Temperature: controls randomness (0.0 = deterministic, 1.0 = creative)
+# Lower values (0.1-0.3) recommended for factual summaries
+# Higher values (0.7-0.9) for creative writing
+llm_temperature: 0.1
+
+# Notes:
+# - LLM_API_KEY and LLM_BASE_URL are in .env (secrets)
+# - For Ollama, ensure model is pulled: `ollama pull mistral`
+# - For cloud providers, check pricing and rate limits
+# - Changing provider/model doesn't require rebuilding database

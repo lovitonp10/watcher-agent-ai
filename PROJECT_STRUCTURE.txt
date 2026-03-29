@@ -1,0 +1,213 @@
+Tech Watch Agent - Structure Complète du Projet
+===============================================
+
+📁 Racine
+├── 📖 Documentation Principale (4 fichiers essentiels)
+│   ├── README.md ...................... Vue d'ensemble et introduction
+│   ├── QUICKSTART.md .................. Guide de démarrage rapide (10 min)
+│   ├── SOURCES.md ..................... Sources surveillées et personnalisation
+│   └── STRUCTURE.md ................... Architecture technique du code
+│
+├── 📂 Documentation Détaillée (docs/)
+│   ├── EMAIL_SETUP.md ................. Configuration email complète
+│   ├── PROVIDERS.md ................... Tous les providers LLM (OpenAI, Mistral, etc.)
+│   ├── MISTRAL_FREE.md ................ Utiliser Mistral gratuitement via HuggingFace
+│   └── archive/ ....................... Anciennes versions (ignorées)
+│
+├── ⚙️ Configuration
+│   ├── .env ........................... Variables d'environnement (NON VERSIONNÉ)
+│   ├── .env.example ................... Template de base
+│   ├── .env.mistral ................... Template Mistral AI payant
+│   ├── .env.mistral-hf-free .......... Template Mistral gratuit (HuggingFace)
+│   ├── .env.free-complete ............. Template 100% gratuit (HF + Gmail)
+│   ├── .gitignore ..................... Fichiers ignorés par Git
+│   ├── config.py ...................... Configuration centralisée (Pydantic)
+│   └── requirements.txt ............... Dépendances Python
+│
+├── 🎯 Scripts & Points d'Entrée
+│   ├── main.py ........................ CLI principal (toutes les commandes)
+│   ├── setup.sh ....................... Installation automatique
+│   ├── schedule_digest.sh ............. Script cron pour email quotidien
+│   └── Makefile ....................... Commandes make (raccourcis)
+│
+├── 🧪 Tests
+│   ├── test_ingestion.py .............. Test des scrapers
+│   ├── test_database.py ............... Test ChromaDB
+│   ├── test_llm.py .................... Test provider LLM
+│   └── test_e2e.py .................... Test end-to-end complet
+│
+├── 📂 Code Source (src/)
+│   ├── ingestion/ ..................... Module d'ingestion
+│   │   ├── models.py .................. Modèle Document (Pydantic)
+│   │   ├── arxiv_scraper.py ........... Scraper ArXiv
+│   │   ├── huggingface_scraper.py ..... Scraper HuggingFace
+│   │   ├── blog_scraper.py ............ Scraper RSS
+│   │   └── orchestrator.py ............ Coordination de tous les scrapers
+│   │
+│   ├── database/ ...................... Module base vectorielle
+│   │   └── vector_db.py ............... ChromaDB + embeddings locaux
+│   │
+│   ├── rag/ ........................... Module RAG
+│   │   ├── retriever.py ............... Recherche vectorielle
+│   │   ├── generator.py ............... Génération LLM (LiteLLM)
+│   │   └── pipeline.py ................ Pipeline RAG complet
+│   │
+│   ├── email/ ......................... Module email
+│   │   └── mailer.py .................. Service SMTP + templates HTML
+│   │
+│   └── cli/ ........................... Module CLI
+│       └── commands.py ................ Commandes Typer (update, chat, digest, etc.)
+│
+└── 💾 Données (data/)
+    ├── chroma_db/ ..................... Base ChromaDB (créé automatiquement)
+    └── test_*/ ........................ Bases de test (nettoyables)
+
+
+Commandes Principales
+=====================
+
+Installation
+------------
+./setup.sh
+source venv/bin/activate
+
+Configuration
+-------------
+cp .env.example .env
+nano .env  # Ajouter vos clés API
+
+Tests
+-----
+python test_llm.py           # Tester le LLM
+python main.py test-email    # Tester l'email
+python test_e2e.py          # Test complet
+
+Utilisation
+-----------
+python main.py update        # Mettre à jour la base
+python main.py chat          # Chat interactif
+python main.py search "..."  # Recherche rapide
+python main.py digest        # Envoyer email digest
+python main.py stats         # Statistiques
+python main.py info          # Configuration
+
+Automatisation
+--------------
+crontab -e
+45 8 * * * /chemin/vers/watcher/schedule_digest.sh
+
+
+Documentation Hiérarchie
+========================
+
+1. Débutant
+   → README.md (5 min lecture)
+   → QUICKSTART.md (10 min setup)
+
+2. Personnalisation
+   → SOURCES.md (ajouter des sources)
+   → config.py (modifier la config)
+
+3. Avancé
+   → STRUCTURE.md (comprendre le code)
+   → docs/EMAIL_SETUP.md (email avancé)
+   → docs/PROVIDERS.md (changer de LLM)
+
+4. Développeur
+   → src/ (code source commenté)
+   → test_*.py (exemples d'utilisation)
+
+
+Flux de Travail Recommandé
+===========================
+
+Première Utilisation
+--------------------
+1. Lire README.md
+2. Suivre QUICKSTART.md
+3. Configurer .env
+4. Tester : python test_llm.py
+5. Lancer : python main.py update
+6. Utiliser : python main.py chat
+
+Usage Quotidien
+---------------
+1. Email automatique chaque matin (cron)
+2. Questions ponctuelles : python main.py chat
+3. Mise à jour manuelle si besoin : python main.py update
+
+Personnalisation
+----------------
+1. Lire SOURCES.md
+2. Modifier config.py (ajouter blogs/catégories)
+3. Ajuster .env (keywords, days_to_fetch)
+4. Tester : python test_ingestion.py
+
+
+Structure Nettoyée
+==================
+
+✅ 4 fichiers de doc principaux (README, QUICKSTART, SOURCES, STRUCTURE)
+✅ Documentation détaillée dans docs/
+✅ Anciennes versions dans docs/archive/
+✅ Templates .env clairs et multiples
+✅ Code source organisé par module
+✅ Tests séparés et nommés clairement
+
+❌ Plus de duplication de documentation
+❌ Plus de fichiers redondants à la racine
+❌ Plus de confusion sur "quel fichier lire"
+
+
+Quick Reference
+===============
+
+Question : "Comment commencer ?"
+→ Réponse : QUICKSTART.md
+
+Question : "Quelles sont les sources ?"
+→ Réponse : SOURCES.md
+
+Question : "Comment fonctionne le code ?"
+→ Réponse : STRUCTURE.md
+
+Question : "Comment configurer l'email ?"
+→ Réponse : docs/EMAIL_SETUP.md
+
+Question : "Utiliser Mistral gratuit ?"
+→ Réponse : docs/MISTRAL_FREE.md
+
+Question : "Changer de LLM ?"
+→ Réponse : docs/PROVIDERS.md
+
+
+Fichiers Importants (à ne jamais supprimer)
+============================================
+
+✅ README.md
+✅ QUICKSTART.md
+✅ SOURCES.md
+✅ STRUCTURE.md
+✅ config.py
+✅ requirements.txt
+✅ main.py
+✅ src/ (tout le code source)
+
+Fichiers Générés (peuvent être supprimés)
+==========================================
+
+❌ data/ (peut être regénéré)
+❌ digest.log
+❌ __pycache__/
+❌ .env (créé depuis .env.example)
+
+
+Taille du Projet
+================
+
+Code source : ~2500 lignes
+Documentation : ~3000 lignes
+Tests : ~800 lignes
+Total : ~6300 lignes
+
+Structure propre, modulaire et maintenable ! ✨

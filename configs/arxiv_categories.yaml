@@ -1,0 +1,21 @@
+# ArXiv Categories - Optimized for Video Popularity Project
+# Note: Each category adds ~15s due to rate limiting. Keep only essential ones.
+
+active_categories:
+  - cs.CV   # Computer Vision (VITAL: YOLO, CLIP, X-CLIP, video analysis, object detection)
+  - cs.AI   # Artificial Intelligence (General AI, reasoning, planning)
+  - cs.LG   # Machine Learning (Models, optimization, explainability/SHAP)
+  - cs.CL   # NLP (Caption analysis, sentiment, speech-to-text)
+  - cs.SI   # Social Networks (VITAL: virality prediction, social graphs, recommendation systems)
+
+# Optional categories (uncomment to enable - adds processing time)
+optional_categories:
+  # - cs.MM   # Multimedia (video/audio fusion) - Often rate-limited by ArXiv
+  # - cs.SD   # Sound (Audio features, music analysis, acoustic modeling)
+  # - eess.AS # Audio/Speech Processing (Voice clarity, prosody, audio quality)
+  # - cs.HC   # Human-Computer Interaction (User engagement, UX patterns)
+
+# Notes:
+# - cs.MM is disabled due to frequent HTTP 429 errors from ArXiv
+# - Adding more categories increases processing time (15s per category)
+# - Rate limiting delays: 15s between categories, 45s on retry

@@ -1,0 +1,15 @@
+# Ingestion Configuration
+# Parameters for fetching content from ArXiv and RSS feeds
+
+# Number of days to look back when fetching new content
+days_to_fetch: 7
+
+# Maximum number of results to fetch per source (ArXiv category or RSS feed)
+# Lower values = faster ingestion but might miss content
+# Higher values = more comprehensive but slower and may hit rate limits
+max_results_per_source: 15
+
+# Notes:
+# - days_to_fetch can be overridden with --days flag in CLI
+# - For ArXiv, respect rate limits (3 seconds between requests)
+# - For RSS feeds, most only provide last 10-20 items anyway

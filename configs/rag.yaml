@@ -1,0 +1,27 @@
+# RAG (Retrieval-Augmented Generation) Configuration
+# Parameters for vector database and retrieval
+
+# Number of most relevant chunks to retrieve for each query
+top_k_results: 5
+
+# Text chunking parameters
+# chunk_size: Maximum characters per chunk
+# chunk_overlap: Characters overlap between consecutive chunks (for context continuity)
+chunk_size: 1000
+chunk_overlap: 200
+
+# Embedding model from HuggingFace
+# This model converts text to vectors for semantic search
+# all-MiniLM-L6-v2: Fast, lightweight, good quality (384 dimensions)
+# Alternatives:
+#   - all-mpnet-base-v2: Better quality but slower (768 dimensions)
+#   - paraphrase-multilingual-MiniLM-L12-v2: For multilingual content
+embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+
+# Vector database path (relative to project root)
+chroma_db_path: "./data/chroma_db"
+
+# Notes:
+# - Larger chunk_size = more context per chunk but less precision
+# - Larger chunk_overlap = better continuity but more redundancy
+# - Changing embedding_model requires clearing and rebuilding the database

@@ -1,0 +1,154 @@
+# RSS Blog Feeds - Optimized for Video Popularity Project
+
+blog_feeds:
+  # === AI/ML Research & Engineering ===
+  ai_research:
+    Netflix Tech Blog:
+      url: https://netflixtechblog.com/feed
+      tags: [recommendation, video, streaming]
+
+    Meta AI:
+      url: https://ai.meta.com/blog/rss/
+      tags: [multimodal, research, vision-language]
+
+    Google AI Blog:
+      url: https://blog.research.google/feeds/posts/default
+      tags: [research, transformers, video-understanding]
+
+    OpenAI Blog:
+      url: https://openai.com/blog/rss.xml
+      tags: [gpt, multimodal, research]
+
+    DeepMind Blog:
+      url: https://deepmind.google/blog/rss.xml
+      tags: [research, alphafold, video-prediction]
+
+    Hugging Face Blog:
+      url: https://huggingface.co/blog/feed.xml
+      tags: [open-source, models, transformers]
+
+    Anthropic Blog:
+      url: https://www.anthropic.com/news/rss.xml
+      tags: [claude, ai-safety, multimodal]
+
+  # === Social Media Platforms Engineering ===
+  social_platforms:
+    Meta Engineering (Reels/Instagram):
+      url: https://engineering.fb.com/feed/
+      tags: [instagram, reels, recommendation, critical]
+
+    TikTok Engineering:
+      url: https://newsroom.tiktok.com/en-us/rss
+      tags: [tiktok, fyp, algorithm, critical]
+
+    Snapchat Engineering:
+      url: https://eng.snap.com/blog/rss.xml
+      tags: [ar, filters, video-processing]
+
+    Pinterest Engineering:
+      url: https://medium.com/feed/@Pinterest_Engineering
+      tags: [visual-search, recommendations]
+
+    YouTube Engineering:
+      url: https://blog.youtube/rss/
+      tags: [video, recommendations, engagement, critical]
+
+    Twitter/X Engineering:
+      url: https://blog.x.com/engineering/en_us/blog.rss
+      tags: [timeline, engagement, algorithms]
+
+  # === Video/Multimodal AI Companies ===
+  video_ai:
+    Runway ML Blog:
+      url: https://runwayml.com/blog/rss.xml
+      tags: [video-generation, editing, ai]
+
+    Twelve Labs Blog:
+      url: https://www.twelvelabs.io/blog/rss.xml
+      tags: [video-understanding, search, multimodal, critical]
+
+  # === Social Media Analytics & Competitors ===
+  analytics_competitors:
+    Hootsuite Blog:
+      url: https://blog.hootsuite.com/feed/
+      tags: [analytics, social-media, engagement]
+
+    Buffer Blog:
+      url: https://buffer.com/resources/feed/
+      tags: [content-performance, posting-strategies]
+
+    Sprout Social Insights:
+      url: https://sproutsocial.com/insights/feed/
+      tags: [social-listening, engagement-analysis]
+
+  # === DIRECT COMPETITORS (Video Analytics & Optimization Tools) ===
+  # These competitors are ALWAYS included in digest (bypass keyword filtering)
+  direct_competitors:
+    VidIQ:
+      url: https://vidiq.com/blog/rss.xml
+      tags: [competitor, youtube-analytics, seo, thumbnails, critical]
+      description: "YouTube analytics and optimization platform"
+
+    TubeBuddy:
+      url: https://www.tubebuddy.com/blog/feed/
+      tags: [competitor, creator-tools, ab-testing, analytics, critical]
+      description: "YouTube creator tools and A/B testing"
+
+    Aggero:
+      url: https://aggero.io/feed/
+      tags: [competitor, video-analytics, optimization, critical]
+      description: "AI-powered video content optimization"
+
+    Syllaby:
+      url: https://syllaby.io/feed/
+      tags: [competitor, ai-video, content-creation, critical]
+      description: "AI video content creation and scripting"
+
+    Adverteyes:
+      url: https://adverteyes.ai/feed/
+      tags: [competitor, ad-analytics, creative-intelligence, critical]
+      description: "AI creative analytics for video ads"
+
+    VidMob:
+      url: https://vidmob.com/blog/rss.xml
+      tags: [competitor, creative-intelligence, video-optimization, critical]
+      description: "Creative intelligence platform for video ads"
+
+  # === Creator Economy & General Tools ===
+  creator_tools:
+    Creator Economy Blog:
+      url: https://creatoreconomy.so/feed
+      tags: [creator-trends, monetization]
+
+  # === Tech Companies with Video/Recommendation Focus ===
+  tech_companies:
+    Airbnb Engineering:
+      url: https://medium.com/feed/airbnb-engineering
+      tags: [recommendation, personalization]
+
+    Uber Engineering:
+      url: https://www.uber.com/blog/engineering/rss/
+      tags: [real-time, ml-at-scale]
+
+    Spotify Engineering:
+      url: https://engineering.atspotify.com/feed/
+      tags: [audio, music, recommendations]
+
+    LinkedIn Engineering:
+      url: https://engineering.linkedin.com/blog.rss.html
+      tags: [content-recommendations, feed-algorithms]
+
+  # === Computer Vision & Video Research ===
+  vision_research:
+    NVIDIA AI Blog:
+      url: https://blogs.nvidia.com/feed/
+      tags: [gpu, video-processing, models]
+
+    Papers with Code Blog:
+      url: https://paperswithcode.com/latest/rss
+      tags: [research, implementations, sota]
+
+# Notes:
+# - "critical" tag indicates sources most relevant to Video Popularity project
+# - Tags help filter and prioritize content
+# - Remove or comment out sources that consistently fail or are not relevant

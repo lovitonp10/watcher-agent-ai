@@ -1,0 +1,27 @@
+# Email Digest Configuration
+# Parameters for digest generation and email formatting
+
+# Summary mode: how much content to use for LLM summary generation
+# Options:
+#   - "short": Fast, uses title + abstract (200 chars max)
+#              Good for: daily digests, Ollama local, many documents (>30)
+#   - "full":  Slower but more accurate, uses complete chunk content (2000 chars max per doc)
+#              Good for: weekly digests, fast LLMs (Groq/GPT-4), detailed analysis
+summary_mode: "short"
+
+# Default digest frequency (can be overridden with --frequency flag)
+# Options: "daily", "weekly"
+default_frequency: "daily"
+
+# Maximum number of articles to show in email (others mentioned as "... and X more")
+max_articles_in_email: 15
+
+# Maximum number of documents to include in summary generation
+# Prevents token overflow for large databases
+max_docs_for_summary: 50
+
+# Notes:
+# - Email credentials (SMTP_*, EMAIL_*) are in .env
+# - EMAIL_ENABLED=true in .env to send emails
+# - Use --preview flag to see digest without sending
+# - Full mode uses ~10x more tokens than short mode

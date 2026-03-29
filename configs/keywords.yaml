@@ -1,0 +1,52 @@
+# Keywords for Video Popularity Project
+# These keywords filter content from ArXiv, HuggingFace, and blogs
+
+keywords:
+  # === Multimodal AI & Video Understanding ===
+  - Video Understanding
+  - Multimodal AI
+  - Vision-Language Models
+  - VLM
+  - Video Popularity
+  - CLIP
+  - ViT
+  - VideoLLM
+  - Zero-Shot Classification
+  - Multimodal Learning
+
+  # === Social Media & Algorithms ===
+  - Social Media Algorithm
+  - TikTok Algorithm
+  - Instagram Algorithm
+  - Video Virality
+  - Engagement Prediction
+  - Content Recommendation
+  - Cross-Platform Analysis
+  - Social Media Analytics
+  - User Engagement
+  - Creator Economy
+
+  # === Video Features & Analysis ===
+  - Video Features
+  - Audio Features
+  - Scene Detection
+  - Video Classification
+  - Action Recognition
+  - Temporal Modeling
+  - Shot Boundary Detection
+  - Video Summarization
+  - Video Captioning
+  - Thumbnail Analysis
+  - Video Editing
+
+  # === Explainability & Interpretability ===
+  - Explainable AI
+  - XAI
+  - SHAP
+  - Attention Mechanism
+
+  # === Tools & Platforms ===
+  - VidIQ
+  - TubeBuddy
+  - Hootsuite Analytics
+  - Video SEO
