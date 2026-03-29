@@ -134,12 +134,13 @@ Context:
                 {"role": "user", "content": query},
             ]
 
-            # Call LiteLLM
+            # Call LiteLLM with longer timeout for slow local LLMs
             response = completion(
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature,
                 api_base=self.base_url,
+                timeout=1200,  # 20 minutes for Ollama
             )
 
             # Extract answer
@@ -239,6 +240,7 @@ Keep it concise (max 250 words). Always reference article numbers when mentionin
                 messages=messages,
                 temperature=self.temperature,
                 api_base=self.base_url,
+                timeout=1200,  # 20 minutes for slow local LLMs
             )
 
             return response.choices[0].message.content
@@ -283,6 +285,7 @@ Keep it concise (max 250 words). Always reference article numbers when mentionin
                 temperature=0.3,  # Lower for consistency
                 max_tokens=100,
                 api_base=self.base_url,
+                timeout=300,  # 5 minutes for short summaries
             )
 
             summary = response.choices[0].message.content.strip()

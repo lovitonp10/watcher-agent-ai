@@ -3,7 +3,7 @@
 
 # LLM Provider
 # Options: "ollama", "openai", "mistral", "anthropic", "groq", "huggingface"
-llm_provider: "ollama"
+llm_provider: "groq"
 
 # Model name (provider-specific)
 # Ollama: "mistral", "llama3", "mixtral", "phi"
@@ -11,7 +11,7 @@ llm_provider: "ollama"
 # Mistral: "mistral-large-latest", "mistral-small-latest"
 # Anthropic: "claude-opus-4-6", "claude-sonnet-4-6"
 # Groq: "mixtral-8x7b-32768", "llama3-70b-8192"
-llm_model: "mistral"
+llm_model: mixtral-8x7b-32768 # "mistral"
 
 # Temperature: controls randomness (0.0 = deterministic, 1.0 = creative)
 # Lower values (0.1-0.3) recommended for factual summaries

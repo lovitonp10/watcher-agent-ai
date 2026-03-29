@@ -18,7 +18,8 @@ max_articles_in_email: 15
 
 # Maximum number of documents to include in summary generation
 # Prevents token overflow for large databases
-max_docs_for_summary: 50
+# Lower this if Ollama times out (use 20-30 for slow local LLMs)
+max_docs_for_summary: 20
 
 # Notes:
 # - Email credentials (SMTP_*, EMAIL_*) are in .env
