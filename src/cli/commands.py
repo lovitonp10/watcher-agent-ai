@@ -78,14 +78,14 @@ def update(
             keywords=settings.keywords_list,
             days_back=days_back,
             max_results=max_per_source,
+            competitor_feeds=COMPETITOR_FEEDS,
         )
 
-        # Fetch documents
+        # Fetch regular documents
         documents = orchestrator.fetch_all()
 
-        if not documents:
-            console.print("[yellow]No new documents found matching your criteria.[/yellow]")
-            return
+        # Fetch competitor news (always get latest 5 from each)
+        competitor_documents = orchestrator.fetch_competitors(max_per_competitor=5)
 
         # Initialize database
         vector_db = VectorDatabase(
@@ -95,18 +95,33 @@ def update(
             chunk_overlap=settings.chunk_overlap,
         )
 
-        # Convert documents to dict format
+        # Convert regular documents to dict format
         docs_to_add = []
         for doc in documents:
             doc_dict = doc.to_dict()
             doc_dict["doc_id"] = doc.doc_id
             docs_to_add.append(doc_dict)
 
-        # Add to database
-        added = vector_db.add_documents(docs_to_add)
+        # Convert competitor documents to dict format
+        competitor_docs_to_add = []
+        for doc in competitor_documents:
+            doc_dict = doc.to_dict()
+            doc_dict["doc_id"] = doc.doc_id
+            competitor_docs_to_add.append(doc_dict)
+
+        # Add all to database
+        all_docs = docs_to_add + competitor_docs_to_add
+        if not all_docs:
+            console.print("[yellow]No new documents found matching your criteria.[/yellow]")
+            return
+
+        added = vector_db.add_documents(all_docs)
 
         console.print(Panel.fit(
-            f"[bold green]✅ Successfully updated knowledge base with {added} new documents![/bold green]",
+            f"[bold green]✅ Successfully updated knowledge base![/bold green]\n"
+            f"[cyan]Regular content: {len(docs_to_add)} docs[/cyan]\n"
+            f"[cyan]Competitor news: {len(competitor_docs_to_add)} docs[/cyan]\n"
+            f"[green]Total added: {added} new documents[/green]",
             border_style="green",
         ))
 

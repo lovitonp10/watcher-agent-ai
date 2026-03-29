@@ -156,9 +156,50 @@ class EmailService:
 
         return "<br>".join(insights)
 
+    def _rate_competitor_article_importance(self, doc: Dict[str, Any]) -> int:
+        """
+        Rate competitor article importance (1-3 stars) based on relevance to Video Popularity project.
+
+        Args:
+            doc: Document dictionary
+
+        Returns:
+            Rating from 1 to 3 stars
+        """
+        title = doc.get("title", "").lower()
+        abstract = doc.get("abstract", "").lower()
+        text = f"{title} {abstract}"
+
+        # 3 stars: High priority keywords
+        high_priority = [
+            "viral", "popularity", "engagement", "algorithm", "recommendation",
+            "tiktok", "instagram", "reels", "shorts", "fyp",
+            "ai", "machine learning", "prediction", "analytics",
+            "thumbnail", "title optimization", "a/b test"
+        ]
+
+        # 2 stars: Medium priority keywords
+        medium_priority = [
+            "video", "content", "creator", "youtube", "social media",
+            "seo", "growth", "views", "subscribers", "audience",
+            "retention", "watch time", "ctr", "click-through"
+        ]
+
+        # Count matches
+        high_matches = sum(1 for kw in high_priority if kw in text)
+        medium_matches = sum(1 for kw in medium_priority if kw in text)
+
+        # Determine rating
+        if high_matches >= 2:
+            return 3  # ⭐⭐⭐
+        elif high_matches >= 1 or medium_matches >= 3:
+            return 2  # ⭐⭐
+        else:
+            return 1  # ⭐
+
     def _format_competitor_section(self, competitor_docs: List[Dict[str, Any]]) -> str:
         """
-        Format competitor news section HTML.
+        Format competitor news section HTML (minimal: stars + title + date).
 
         Args:
             competitor_docs: List of competitor documents
@@ -179,10 +220,10 @@ class EmailService:
                 competitors_grouped[competitor_name] = []
             competitors_grouped[competitor_name].append(doc)
 
-        # Build competitor cards
+        # Build competitor cards (minimal format)
         competitor_html = ""
         for competitor_name, docs in competitors_grouped.items():
-            # Take only most recent 4-5 posts
+            # Take only most recent 5 posts
             recent_docs = sorted(
                 docs,
                 key=lambda x: x.get("published_date", "1970-01-01"),
@@ -190,8 +231,8 @@ class EmailService:
             )[:5]
 
             competitor_html += f"""
-            <div style='background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-left: 6px solid #ef4444;'>
-                <h3 style='margin: 0 0 16px 0; color: #111827; font-size: 20px; font-weight: 700;'>
+            <div style='background: white; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid #ef4444;'>
+                <h3 style='margin: 0 0 12px 0; color: #111827; font-size: 16px; font-weight: 700;'>
                     🎯 {competitor_name}
                 </h3>
             """
@@ -200,36 +241,34 @@ class EmailService:
                 title = doc.get("title", "Sans titre")
                 url = doc.get("url", "#")
                 date = doc.get("published_date", "")
-                # Use LLM-generated summary or fallback
-                summary = doc.get("llm_summary") or doc.get("abstract", "")
-                if summary and len(summary) > 200:
-                    summary = summary[:200] + "..."
+
+                # Rate importance
+                stars = self._rate_competitor_article_importance(doc)
+                star_display = "⭐" * stars
 
                 competitor_html += f"""
-                <div style='padding: 12px 0; border-bottom: 1px solid #e5e7eb;'>
-                    <div style='margin-bottom: 4px;'>
-                        <a href='{url}' style='color: #1f2937; text-decoration: none; font-weight: 600; font-size: 15px;' target='_blank'>{title}</a>
+                <div style='padding: 8px 0; border-bottom: 1px solid #f3f4f6; display: flex; align-items: start; gap: 8px;'>
+                    <div style='color: #f59e0b; font-size: 14px; min-width: 55px;'>{star_display}</div>
+                    <div style='flex: 1;'>
+                        <a href='{url}' style='color: #1f2937; text-decoration: none; font-weight: 500; font-size: 14px; line-height: 1.4;' target='_blank'>{title}</a>
+                        <div style='color: #9ca3af; font-size: 12px; margin-top: 2px;'>📅 {date}</div>
                     </div>
-                    <div style='color: #6b7280; font-size: 13px; margin-bottom: 6px;'>
-                        📅 {date}
-                    </div>
-                    {f"<div style='color: #4b5563; font-size: 14px; line-height: 1.5;'>{summary}</div>" if summary else ""}
                 </div>
                 """
 
             competitor_html += "</div>"
 
-        # Wrap in section
+        # Wrap in section (compact)
         section_html = f"""
         <!-- Competitor News Section -->
         <div style='margin-bottom: 30px;'>
-            <div style='display: flex; align-items: center; margin-bottom: 24px;'>
-                <div style='width: 5px; height: 32px; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); border-radius: 3px; margin-right: 14px;'></div>
-                <h2 style='margin: 0; color: #111827; font-size: 26px; font-weight: 800;'>🚨 Competitor News</h2>
+            <div style='display: flex; align-items: center; margin-bottom: 16px;'>
+                <div style='width: 4px; height: 28px; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); border-radius: 2px; margin-right: 12px;'></div>
+                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 800;'>🚨 Competitors ({len(competitors_grouped)})</h2>
             </div>
-            <div style='background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px solid #ef4444; padding: 16px; border-radius: 12px; margin-bottom: 20px;'>
-                <div style='color: #991b1b; font-size: 14px; font-weight: 600;'>
-                    📊 Dernières nouvelles des {len(competitors_grouped)} competitors directs (VidIQ, TubeBuddy, Aggero, Syllaby, Adverteyes, VidMob)
+            <div style='background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #ef4444; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;'>
+                <div style='color: #991b1b; font-size: 13px; font-weight: 600;'>
+                    ⭐⭐⭐ Très pertinent | ⭐⭐ Pertinent | ⭐ À surveiller
                 </div>
             </div>
             {competitor_html}
