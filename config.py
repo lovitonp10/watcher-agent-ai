@@ -2,6 +2,7 @@
 Configuration management for Tech Watch Agent.
 Loads settings from .env and configs/*.yaml files.
 """
+import os
 from pathlib import Path
 from typing import List, Dict
 import yaml
@@ -45,13 +46,23 @@ class Settings(BaseSettings):
 
     @property
     def llm_provider(self) -> str:
-        """Load LLM provider from YAML."""
+        """Load LLM provider from environment or YAML."""
+        # Environment variable takes precedence (for GitHub Actions)
+        env_provider = os.getenv("LLM_PROVIDER")
+        if env_provider:
+            return env_provider
+        # Fallback to YAML config
         config = load_yaml_config("llm.yaml")
         return config.get("llm_provider", "ollama")
 
     @property
     def llm_model(self) -> str:
-        """Load LLM model from YAML."""
+        """Load LLM model from environment or YAML."""
+        # Environment variable takes precedence (for GitHub Actions)
+        env_model = os.getenv("LLM_MODEL")
+        if env_model:
+            return env_model
+        # Fallback to YAML config
         config = load_yaml_config("llm.yaml")
         return config.get("llm_model", "mistral")
 
@@ -70,13 +81,23 @@ class Settings(BaseSettings):
 
     @property
     def days_to_fetch(self) -> int:
-        """Load days to fetch from YAML."""
+        """Load days to fetch from environment or YAML."""
+        # Environment variable takes precedence (for GitHub Actions)
+        env_days = os.getenv("DAYS_TO_FETCH")
+        if env_days:
+            return int(env_days)
+        # Fallback to YAML config
         config = load_yaml_config("ingestion.yaml")
         return config.get("days_to_fetch", 7)
 
     @property
     def max_results_per_source(self) -> int:
-        """Load max results per source from YAML."""
+        """Load max results per source from environment or YAML."""
+        # Environment variable takes precedence (for GitHub Actions)
+        env_max = os.getenv("MAX_RESULTS_PER_SOURCE")
+        if env_max:
+            return int(env_max)
+        # Fallback to YAML config
         config = load_yaml_config("ingestion.yaml")
         return config.get("max_results_per_source", 15)
 
@@ -130,7 +151,14 @@ class Settings(BaseSettings):
 
     @property
     def keywords_list(self) -> List[str]:
-        """Load keywords from YAML config."""
+        """Load keywords from environment or YAML config."""
+        # Environment variable takes precedence (for GitHub Actions)
+        # Expected format: comma-separated string
+        env_keywords = os.getenv("KEYWORDS")
+        if env_keywords:
+            # Split by comma and strip whitespace
+            return [kw.strip() for kw in env_keywords.split(",") if kw.strip()]
+        # Fallback to YAML config
         config = load_yaml_config("keywords.yaml")
         if config and "keywords" in config:
             return config["keywords"]

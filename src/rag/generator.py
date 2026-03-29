@@ -51,6 +51,8 @@ class Generator:
                 os.environ["MISTRAL_API_KEY"] = api_key
             elif self.provider == "anthropic":
                 os.environ["ANTHROPIC_API_KEY"] = api_key
+            elif self.provider == "groq":
+                os.environ["GROQ_API_KEY"] = api_key
             elif self.provider == "huggingface":
                 os.environ["HUGGINGFACE_API_KEY"] = api_key
                 os.environ["HF_TOKEN"] = api_key  # Alternative env var
@@ -72,7 +74,7 @@ class Generator:
             Properly formatted model name with provider prefix
         """
         # If model already has provider prefix, return as is
-        if model.startswith(("huggingface/", "mistral/", "anthropic/", "ollama/")):
+        if model.startswith(("huggingface/", "mistral/", "anthropic/", "ollama/", "groq/")):
             return model
 
         # Handle sentence-transformers models
@@ -86,6 +88,8 @@ class Generator:
             return f"anthropic/{model}"
         elif self.provider == "ollama" and not model.startswith("ollama/"):
             return f"ollama/{model}"
+        elif self.provider == "groq" and not model.startswith("groq/"):
+            return f"groq/{model}"
         elif self.provider == "huggingface":
             # HuggingFace models already have org/model format
             if "/" in model:
