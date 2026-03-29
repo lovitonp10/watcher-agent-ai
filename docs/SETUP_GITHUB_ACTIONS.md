@@ -26,7 +26,6 @@ Ce guide configure l'envoi automatique du digest quotidien via **GitHub Actions*
 2. S'inscrire (gratuit)
 3. Créer une API Key: https://console.groq.com/keys
 4. Copier la clé (format: `gsk_...`)
-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
 ---
 
 ## 🚀 Étape 2: Push le code sur GitHub
