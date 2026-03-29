@@ -476,41 +476,40 @@ def digest(
             console.print(f"[cyan]  Regular content: {len(docs_to_add)} docs[/cyan]")
             console.print(f"[cyan]  Competitor news: {len(competitor_docs_to_add)} docs[/cyan]")
 
-            # If no new documents, get last 10 from database
+            # If no new regular documents, get last 10 from database
             if len(docs_to_add) == 0:
-                console.print("[yellow]⚠ No new documents found. Getting last 10 from database...[/yellow]")
+                console.print("[yellow]⚠ No new regular documents found. Getting last 10 from database...[/yellow]")
 
                 all_data = vector_db.collection.get(include=["metadatas", "documents"])
                 if all_data and all_data.get("metadatas"):
-                    # Group chunks by doc_id
-                    doc_chunks = {}
+                    # Group chunks by doc_id (separate regular and competitor docs)
+                    regular_doc_chunks = {}
+                    competitor_doc_chunks = {}
+
                     for i, metadata in enumerate(all_data["metadatas"]):
                         doc_id = metadata.get("doc_id")
                         source = metadata.get("source", "")
-                        # Skip competitor docs here (we'll get them separately)
-                        if source.startswith("competitor_"):
-                            continue
+                        is_competitor = source.startswith("competitor_")
 
                         if doc_id:
-                            if doc_id not in doc_chunks:
-                                doc_chunks[doc_id] = {
+                            target_dict = competitor_doc_chunks if is_competitor else regular_doc_chunks
+
+                            if doc_id not in target_dict:
+                                target_dict[doc_id] = {
                                     "metadata": metadata,
                                     "chunks": []
                                 }
                             if i < len(all_data["documents"]):
                                 chunk_index = metadata.get("chunk_index", 0)
-                                doc_chunks[doc_id]["chunks"].append((chunk_index, all_data["documents"][i]))
+                                target_dict[doc_id]["chunks"].append((chunk_index, all_data["documents"][i]))
 
-                    # Process each document
+                    # Process regular documents
                     seen_doc_ids = {}
-                    for doc_id, data in doc_chunks.items():
+                    for doc_id, data in regular_doc_chunks.items():
                         metadata = data["metadata"]
-
-                        # Sort chunks by index and join them
                         sorted_chunks = sorted(data["chunks"], key=lambda x: x[0])
                         full_content = "\n\n".join([chunk for _, chunk in sorted_chunks])
 
-                        # Extract abstract
                         title = metadata.get("title", "")
                         if full_content.startswith(title):
                             abstract = full_content[len(title):].strip()
@@ -528,11 +527,30 @@ def digest(
                         reverse=True
                     )
                     docs_to_add = sorted_docs[:10]
-                    console.print(f"[green]✓ Retrieved {len(docs_to_add)} recent documents[/green]")
+                    console.print(f"[green]✓ Retrieved {len(docs_to_add)} recent regular documents[/green]")
 
-                    # Also get competitor docs separately (no limit, always show all)
+                    # Process ALL competitor docs (always include them)
                     if not competitor_docs_to_add:
                         competitor_docs_to_add = []
+                        for doc_id, data in competitor_doc_chunks.items():
+                            metadata = data["metadata"]
+                            sorted_chunks = sorted(data["chunks"], key=lambda x: x[0])
+                            full_content = "\n\n".join([chunk for _, chunk in sorted_chunks])
+
+                            title = metadata.get("title", "")
+                            if full_content.startswith(title):
+                                abstract = full_content[len(title):].strip()
+                            else:
+                                abstract = full_content
+
+                            metadata["abstract"] = abstract[:500] if abstract else "No summary available"
+                            competitor_docs_to_add.append(metadata)
+
+                        console.print(f"[cyan]✓ Retrieved {len(competitor_docs_to_add)} competitor documents[/cyan]")
+
+                    if not docs_to_add and not competitor_docs_to_add:
+                        console.print("[yellow]⚠ Database is empty. Run 'python main.py update' first.[/yellow]")
+                        return
                 else:
                     console.print("[yellow]⚠ Database is empty. Run 'python main.py update' first.[/yellow]")
                     return
@@ -667,27 +685,8 @@ When summarizing, please mention how each article could benefit this project."""
 
         console.print(f"[green]✓ Generated {len(deduplicated_docs)} article summaries[/green]")
 
-        # Generate summaries for competitor docs too
-        if competitor_docs_to_add:
-            console.print(f"[cyan]Generating summaries for {len(competitor_docs_to_add)} competitor articles...[/cyan]")
-            for doc in competitor_docs_to_add:
-                try:
-                    doc_id = doc.get("doc_id")
-                    if doc_id:
-                        chunks_data = vector_db.collection.get(
-                            where={"doc_id": doc_id},
-                            include=["documents"]
-                        )
-                        if chunks_data and chunks_data.get("documents"):
-                            full_content = "\n\n".join(chunks_data["documents"])
-                            article_summary = rag.generator.generate_article_summary(
-                                title=doc.get("title", ""),
-                                content=full_content
-                            )
-                            doc["llm_summary"] = article_summary
-                except Exception as e:
-                    doc["llm_summary"] = doc.get("abstract", "Résumé non disponible")[:200]
-            console.print(f"[green]✓ Generated competitor summaries[/green]")
+        # Skip LLM summary generation for competitors (not displayed in email)
+        console.print(f"[dim]Skipping LLM summaries for {len(competitor_docs_to_add)} competitors (not needed for display)[/dim]")
 
         # Send email
         console.print(f"\n[cyan]Sending {digest_type.lower()} email digest...[/cyan]")

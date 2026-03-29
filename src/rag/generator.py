@@ -40,6 +40,11 @@ class Generator:
             # New HuggingFace Inference API endpoint
             self.base_url = "https://api-inference.huggingface.co/models"
             console.print("[yellow]Note: Using HuggingFace Inference API (may have rate limits)[/yellow]")
+        # For cloud providers (Groq, OpenAI, Anthropic, Mistral), ignore base_url from .env
+        elif self.provider in ["groq", "openai", "anthropic", "mistral"] and base_url and "localhost" in base_url:
+            # User has Ollama base_url in .env, but using cloud provider - ignore it
+            console.print(f"[dim]Ignoring LLM_BASE_URL for {self.provider} (using default API endpoint)[/dim]")
+            self.base_url = None
         else:
             self.base_url = base_url
 
@@ -57,8 +62,8 @@ class Generator:
                 os.environ["HUGGINGFACE_API_KEY"] = api_key
                 os.environ["HF_TOKEN"] = api_key  # Alternative env var
 
-        # Set base URL if provided
-        if self.base_url:
+        # Set base URL only if it's defined and not a cloud provider
+        if self.base_url and self.provider not in ["groq", "openai", "anthropic", "mistral"]:
             os.environ[f"{self.provider.upper()}_API_BASE"] = self.base_url
 
         console.print(f"[dim]Using LLM: {self.provider}/{self.model}[/dim]")
@@ -139,13 +144,17 @@ Context:
             ]
 
             # Call LiteLLM with longer timeout for slow local LLMs
-            response = completion(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                api_base=self.base_url,
-                timeout=1200,  # 20 minutes for Ollama
-            )
+            kwargs = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": self.temperature,
+                "timeout": 1200,  # 20 minutes for slow LLMs
+            }
+            # Only add api_base if it's defined (not for cloud providers)
+            if self.base_url:
+                kwargs["api_base"] = self.base_url
+
+            response = completion(**kwargs)
 
             # Extract answer
             answer = response.choices[0].message.content
@@ -243,13 +252,16 @@ Keep it ultra-concise. Maximum 4-5 articles. Just list themes, no elaboration.""
         ]
 
         try:
-            response = completion(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                api_base=self.base_url,
-                timeout=1200,  # 20 minutes for slow local LLMs
-            )
+            kwargs = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": self.temperature,
+                "timeout": 1200,  # 20 minutes for slow local LLMs
+            }
+            if self.base_url:
+                kwargs["api_base"] = self.base_url
+
+            response = completion(**kwargs)
 
             return response.choices[0].message.content
 
@@ -287,14 +299,17 @@ Keep it ultra-concise. Maximum 4-5 articles. Just list themes, no elaboration.""
         ]
 
         try:
-            response = completion(
-                model=self.model,
-                messages=messages,
-                temperature=0.3,  # Lower for consistency
-                max_tokens=100,
-                api_base=self.base_url,
-                timeout=300,  # 5 minutes for short summaries
-            )
+            kwargs = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": 0.3,  # Lower for consistency
+                "max_tokens": 100,
+                "timeout": 300,  # 5 minutes for short summaries
+            }
+            if self.base_url:
+                kwargs["api_base"] = self.base_url
+
+            response = completion(**kwargs)
 
             summary = response.choices[0].message.content.strip()
             return summary if summary else "Résumé non disponible"
