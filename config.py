@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # === Secrets from .env (API keys, credentials) ===
     llm_api_key: str = "ollama"
-    llm_base_url: str | None = "http://localhost:11434"
+    llm_base_url: str | None = None  # Only needed for local Ollama, not for cloud providers
 
     # Email Configuration (secrets)
     email_enabled: bool = False
