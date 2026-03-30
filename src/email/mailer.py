@@ -170,29 +170,44 @@ class EmailService:
         abstract = doc.get("abstract", "").lower()
         text = f"{title} {abstract}"
 
-        # Theme detection with priority order
+        # Theme detection with priority order (most specific first)
         themes = [
             # (keywords, theme_name, color)
-            (["multimodal", "vision-language", "vlm", "video understanding", "video-llm", "clip", "vision transformer", "vit"],
+            (["multimodal", "vision-language", "vlm", "video understanding", "video-llm", "clip", "vision transformer", "vit", "visual", "image-text"],
              "Multimodal & VLM", "#8b5cf6"),  # Purple
 
-            (["explainability", "xai", "interpretability", "shap", "lime", "attention", "saliency"],
+            (["engagement", "popularity", "viral", "recommendation", "ranking", "tiktok", "instagram", "reels", "social media"],
+             "Social Media & Engagement", "#ec4899"),  # Pink
+
+            (["explainability", "xai", "interpretability", "shap", "lime", "attention mechanism", "saliency", "faithfulness"],
              "Explainability & XAI", "#f59e0b"),  # Orange
 
-            (["engagement", "popularity", "viral", "recommendation", "ranking", "algorithm", "tiktok", "instagram", "reels"],
-             "Engagement & Recommendation", "#ec4899"),  # Pink
+            (["3d", "geometry", "geometric", "spatial", "mesh", "rendering", "scene", "reconstruction"],
+             "Computer Vision & 3D", "#10b981"),  # Green
 
-            (["scene detection", "shot boundary", "temporal", "video features", "audio features", "bpm", "sound", "music"],
-             "Video & Audio Features", "#10b981"),  # Green
+            (["transformer", "bert", "gpt", "llm", "language model", "embedding", "token"],
+             "LLM & NLP", "#3b82f6"),  # Blue
 
-            (["transformer", "bert", "gpt", "llm", "neural network", "deep learning", "architecture"],
-             "AI Architecture", "#3b82f6"),  # Blue
+            (["diffusion", "generative", "gan", "vae", "synthesis", "generation", "synthetic"],
+             "Generative AI", "#ec4899"),  # Pink
 
-            (["cross-platform", "transfer learning", "domain adaptation", "multi-domain"],
-             "Transfer Learning", "#8b5cf6"),  # Purple
+            (["detection", "classification", "segmentation", "object detection", "recognition"],
+             "Detection & Classification", "#14b8a6"),  # Teal
 
-            (["dataset", "benchmark", "evaluation", "metric"],
+            (["agent", "reasoning", "planning", "autonomous", "multi-agent"],
+             "AI Agents & Reasoning", "#a855f7"),  # Purple
+
+            (["medical", "healthcare", "clinical", "diagnosis", "patient"],
+             "Healthcare & Medical AI", "#ef4444"),  # Red
+
+            (["misinformation", "fake", "bot", "social", "political", "content moderation"],
+             "Social AI & Misinformation", "#f59e0b"),  # Orange
+
+            (["dataset", "benchmark", "evaluation", "metric", "survey", "review"],
              "Datasets & Benchmarks", "#6366f1"),  # Indigo
+
+            (["transfer learning", "domain adaptation", "few-shot", "zero-shot", "fine-tuning"],
+             "Transfer Learning", "#8b5cf6"),  # Purple
         ]
 
         # Find matching theme
