@@ -197,9 +197,6 @@ class EmailService:
             (["agent", "reasoning", "planning", "autonomous", "multi-agent"],
              "AI Agents & Reasoning", "#a855f7"),  # Purple
 
-            (["medical", "healthcare", "clinical", "diagnosis", "patient"],
-             "Healthcare & Medical AI", "#ef4444"),  # Red
-
             (["misinformation", "fake", "bot", "social", "political", "content moderation"],
              "Social AI & Misinformation", "#f59e0b"),  # Orange
 
