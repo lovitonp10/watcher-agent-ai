@@ -156,6 +156,53 @@ class EmailService:
 
         return "<br>".join(insights)
 
+    def _detect_article_theme(self, doc: Dict[str, Any]) -> tuple[str, str]:
+        """
+        Detect article theme and return (theme_name, theme_color).
+
+        Args:
+            doc: Document dictionary
+
+        Returns:
+            Tuple of (theme name, hex color)
+        """
+        title = doc.get("title", "").lower()
+        abstract = doc.get("abstract", "").lower()
+        text = f"{title} {abstract}"
+
+        # Theme detection with priority order
+        themes = [
+            # (keywords, theme_name, color)
+            (["multimodal", "vision-language", "vlm", "video understanding", "video-llm", "clip", "vision transformer", "vit"],
+             "Multimodal & VLM", "#8b5cf6"),  # Purple
+
+            (["explainability", "xai", "interpretability", "shap", "lime", "attention", "saliency"],
+             "Explainability & XAI", "#f59e0b"),  # Orange
+
+            (["engagement", "popularity", "viral", "recommendation", "ranking", "algorithm", "tiktok", "instagram", "reels"],
+             "Engagement & Recommendation", "#ec4899"),  # Pink
+
+            (["scene detection", "shot boundary", "temporal", "video features", "audio features", "bpm", "sound", "music"],
+             "Video & Audio Features", "#10b981"),  # Green
+
+            (["transformer", "bert", "gpt", "llm", "neural network", "deep learning", "architecture"],
+             "AI Architecture", "#3b82f6"),  # Blue
+
+            (["cross-platform", "transfer learning", "domain adaptation", "multi-domain"],
+             "Transfer Learning", "#8b5cf6"),  # Purple
+
+            (["dataset", "benchmark", "evaluation", "metric"],
+             "Datasets & Benchmarks", "#6366f1"),  # Indigo
+        ]
+
+        # Find matching theme
+        for keywords, theme_name, color in themes:
+            if any(kw in text for kw in keywords):
+                return (theme_name, color)
+
+        # Default theme
+        return ("General AI/ML", "#6b7280")  # Gray
+
     def _rate_competitor_article_importance(self, doc: Dict[str, Any]) -> int:
         """
         Rate competitor article importance (1-3 stars) based on relevance to Video Popularity project.
@@ -309,7 +356,7 @@ class EmailService:
         # Build document cards HTML (no grouping by source, all individual cards)
         docs_html = ""
 
-        for i, doc in enumerate(new_docs[:max_articles]):  # Limit articles
+        for doc in new_docs[:max_articles]:  # Limit articles
             title = doc.get("title", "Sans titre")
             url = doc.get("url", "#")
 
@@ -330,17 +377,21 @@ class EmailService:
             # Generate Video Popularity insight
             vp_insight = self._generate_video_popularity_insight(doc)
 
-            # Alternating colors for visual variety
-            border_colors = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"]
-            border_color = border_colors[i % len(border_colors)]
+            # Detect theme and get color
+            theme_name, border_color = self._detect_article_theme(doc)
 
             docs_html += f"""
             <div style='margin-bottom: 30px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-left: 6px solid {border_color};'>
                 <!-- Card Header -->
                 <div style='background: linear-gradient(135deg, {border_color}15 0%, {border_color}05 100%); padding: 20px 24px; border-bottom: 1px solid #e5e7eb;'>
-                    <div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;'>
-                        <div style='background: {border_color}; color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; text-transform: uppercase;'>
-                            {source}
+                    <div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;'>
+                        <div style='display: flex; gap: 8px; align-items: center;'>
+                            <div style='background: {border_color}; color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; text-transform: uppercase;'>
+                                🏷️ {theme_name}
+                            </div>
+                            <div style='color: #9ca3af; font-size: 11px; font-weight: 500;'>
+                                {source}
+                            </div>
                         </div>
                         <div style='color: #6b7280; font-size: 13px;'>
                             📅 {date}

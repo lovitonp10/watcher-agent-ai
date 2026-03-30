@@ -25,6 +25,7 @@ wheels/
 
 # Environment
 .env
+.env.backup.20260330_120317
 
 # Vector Database
 data/
