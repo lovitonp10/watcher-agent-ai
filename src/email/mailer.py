@@ -203,6 +203,47 @@ class EmailService:
         # Default theme
         return ("General AI/ML", "#6b7280")  # Gray
 
+    def _generate_theme_summary(self, docs: List[Dict[str, Any]]) -> str:
+        """
+        Generate a summary with count of articles by theme.
+
+        Args:
+            docs: List of documents
+
+        Returns:
+            HTML summary text with theme counts
+        """
+        from collections import Counter
+
+        # Count articles by theme
+        theme_counts = Counter()
+        theme_colors = {}
+
+        for doc in docs:
+            theme_name, theme_color = self._detect_article_theme(doc)
+            theme_counts[theme_name] += 1
+            theme_colors[theme_name] = theme_color
+
+        # Sort by count (descending)
+        sorted_themes = sorted(theme_counts.items(), key=lambda x: x[1], reverse=True)
+
+        # Build HTML summary
+        summary_html = "<div style='line-height: 2;'>"
+
+        for theme_name, count in sorted_themes:
+            color = theme_colors[theme_name]
+            summary_html += f"""
+                <div style='display: flex; align-items: center; margin-bottom: 8px;'>
+                    <div style='width: 12px; height: 12px; background: {color}; border-radius: 3px; margin-right: 10px;'></div>
+                    <span style='font-weight: 600; color: #111827;'>{theme_name}</span>
+                    <span style='margin-left: auto; background: {color}20; color: {color}; padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 14px;'>{count}</span>
+                </div>
+            """
+
+        summary_html += "</div>"
+
+        return summary_html
+
     def _rate_competitor_article_importance(self, doc: Dict[str, Any]) -> int:
         """
         Rate competitor article importance (1-3 stars) based on relevance to Video Popularity project.
@@ -471,12 +512,12 @@ class EmailService:
 
         <!-- Summary Section -->
         <div style='background: white; padding: 28px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);'>
-            <div style='display: flex; align-items: center; margin-bottom: 16px;'>
+            <div style='display: flex; align-items: center; margin-bottom: 20px;'>
                 <div style='width: 4px; height: 24px; background: linear-gradient(180deg, #f59e0b 0%, #eab308 100%); border-radius: 2px; margin-right: 12px;'></div>
-                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Résumé</h2>
+                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Résumé par Thème</h2>
             </div>
-            <div style='color: #374151; line-height: 1.8; font-size: 15px; white-space: pre-line;'>
-{summary}
+            <div style='color: #374151; font-size: 15px;'>
+{self._generate_theme_summary(new_docs[:max_articles])}
             </div>
         </div>
 
