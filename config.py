@@ -199,12 +199,12 @@ LLM_PROVIDERS = {
     },
     "groq": {
         "models": [
-            "mixtral-8x7b-32768",
-            "llama3-70b-8192",
-            "llama3-8b-8192",
-            "gemma-7b-it",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-70b-versatile",
+            "llama-3.1-8b-instant",
+            "mixtral-8x7b-32768",  # deprecated
         ],
-        "default": "mixtral-8x7b-32768",
+        "default": "llama-3.3-70b-versatile",
     },
 }
 
