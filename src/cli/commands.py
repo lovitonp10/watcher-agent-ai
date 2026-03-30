@@ -476,9 +476,9 @@ def digest(
             console.print(f"[cyan]  Regular content: {len(docs_to_add)} docs[/cyan]")
             console.print(f"[cyan]  Competitor news: {len(competitor_docs_to_add)} docs[/cyan]")
 
-            # If no new regular documents, get last 10 from database
+            # If no new regular documents, get last 15 from database
             if len(docs_to_add) == 0:
-                console.print("[yellow]⚠ No new regular documents found. Getting last 10 from database...[/yellow]")
+                console.print("[yellow]⚠ No new regular documents found. Getting last 15 from database...[/yellow]")
 
                 all_data = vector_db.collection.get(include=["metadatas", "documents"])
                 if all_data and all_data.get("metadatas"):
@@ -519,14 +519,14 @@ def digest(
                         metadata["abstract"] = abstract[:500] if abstract else "No summary available"
                         seen_doc_ids[doc_id] = metadata
 
-                    # Sort by date and take last 10
+                    # Sort by date and take last 15
                     all_docs = list(seen_doc_ids.values())
                     sorted_docs = sorted(
                         all_docs,
                         key=lambda x: x.get("published_date", "1970-01-01"),
                         reverse=True
                     )
-                    docs_to_add = sorted_docs[:10]
+                    docs_to_add = sorted_docs[:15]
                     console.print(f"[green]✓ Retrieved {len(docs_to_add)} recent regular documents[/green]")
 
                     # Process ALL competitor docs (always include them)
