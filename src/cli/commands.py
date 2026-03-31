@@ -636,8 +636,8 @@ When summarizing, please mention how each article could benefit this project."""
 
             console.print(Panel(
                 f"{doc_count_label}\n"
-                f"[bold]Total en base:[/bold] {stats['total_documents']} documents\n\n"
-                f"[bold cyan]Résumé:[/bold cyan]\n{summary_result[:500]}...",
+                f"[bold]Total in database:[/bold] {stats['total_documents']} documents\n\n"
+                f"[bold cyan]Summary:[/bold cyan]\n{summary_result[:500]}...",
                 title=f"[bold yellow]{digest_type} Digest Preview[/bold yellow]",
                 border_style="yellow",
             ))
@@ -698,6 +698,11 @@ When summarizing, please mention how each article could benefit this project."""
             smtp_password=settings.smtp_password,
             from_email=settings.email_from,
             use_tls=settings.email_use_tls,
+            llm_provider=settings.llm_provider,
+            llm_model=settings.llm_model,
+            llm_api_key=settings.llm_api_key,
+            llm_base_url=settings.llm_base_url,
+            llm_temperature=settings.llm_temperature,
         )
 
         success = email_service.send_digest(
@@ -763,6 +768,11 @@ def test_email():
             smtp_password=settings.smtp_password,
             from_email=settings.email_from,
             use_tls=settings.email_use_tls,
+            llm_provider=settings.llm_provider,
+            llm_model=settings.llm_model,
+            llm_api_key=settings.llm_api_key,
+            llm_base_url=settings.llm_base_url,
+            llm_temperature=settings.llm_temperature,
         )
 
         success = email_service.test_connection()

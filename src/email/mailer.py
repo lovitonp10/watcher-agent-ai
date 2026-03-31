@@ -5,9 +5,11 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from rich.console import Console
+from litellm import completion
+import os
 
 console = Console()
 
@@ -23,6 +25,11 @@ class EmailService:
         smtp_password: str,
         from_email: str,
         use_tls: bool = True,
+        llm_provider: str = "ollama",
+        llm_model: str = "mistral",
+        llm_api_key: str = None,
+        llm_base_url: str = None,
+        llm_temperature: float = 0.3,
     ):
         """
         Initialize email service.
@@ -34,6 +41,11 @@ class EmailService:
             smtp_password: SMTP password
             from_email: From email address
             use_tls: Use TLS encryption
+            llm_provider: LLM provider for generating insights
+            llm_model: LLM model name
+            llm_api_key: API key for LLM provider
+            llm_base_url: Base URL for LLM API
+            llm_temperature: Temperature for LLM generation
         """
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
@@ -42,119 +54,202 @@ class EmailService:
         self.from_email = from_email
         self.use_tls = use_tls
 
-    def _generate_video_popularity_insight(self, doc: Dict[str, Any]) -> str:
+        # LLM configuration
+        self.llm_provider = llm_provider.lower()
+        self.llm_model = self._format_model_name(llm_model)
+        self.llm_temperature = llm_temperature
+        self.llm_base_url = llm_base_url
+
+        # Set API key in environment for LiteLLM
+        if llm_api_key:
+            if self.llm_provider == "openai":
+                os.environ["OPENAI_API_KEY"] = llm_api_key
+            elif self.llm_provider == "mistral":
+                os.environ["MISTRAL_API_KEY"] = llm_api_key
+            elif self.llm_provider == "anthropic":
+                os.environ["ANTHROPIC_API_KEY"] = llm_api_key
+            elif self.llm_provider == "groq":
+                os.environ["GROQ_API_KEY"] = llm_api_key
+
+    def _format_model_name(self, model: str) -> str:
+        """Format model name for LiteLLM provider prefix."""
+        # If model already has a provider prefix, return as-is
+        if "/" in model:
+            return model
+
+        # Add provider prefix for LiteLLM
+        if self.llm_provider in ["mistral", "anthropic", "ollama", "groq"]:
+            return f"{self.llm_provider}/{model}"
+
+        return model
+
+    def _generate_video_popularity_insight(self, doc: Dict[str, Any], use_llm: bool = True) -> str:
         """
-        Generate actionable Video Popularity project insights for a document.
+        Generate actionable Video Popularity project insights.
 
         Args:
             doc: Document dictionary
+            use_llm: If True, try LLM analysis; if False or LLM fails, use keyword-based fallback
 
         Returns:
             HTML insight text with actionable recommendations
         """
-        title = doc.get("title", "").lower()
-        abstract = doc.get("abstract", "").lower()
-        source = doc.get("source", "unknown").lower()
-        text = f"{title} {abstract}"
+        title = doc.get("title", "")
+        abstract = doc.get("abstract", "")
+        source = doc.get("source", "unknown")
+        text = f"{title} {abstract}".lower()
 
-        insights = []
+        llm_error = None  # Track LLM errors for display in email
 
-        # === MULTIMODAL / VISION-LANGUAGE ===
-        if any(kw in text for kw in ["multimodal", "vision-language", "vlm", "video understanding", "video-llm"]):
-            if "clip" in text or "align" in text:
-                insights.append("📹 <strong>Levier:</strong> Utiliser l'alignement vision-texte (type CLIP) pour encoder simultanément frames vidéo + captions + hashtags")
-                insights.append("💰 <strong>Bénéfice:</strong> Meilleure représentation sémantique → prédiction viralité +15-25%")
-            elif "fusion" in text or "modality" in text:
-                insights.append("📹 <strong>Levier:</strong> Implémenter une fusion tardive (late fusion) des features vision/audio/texte avec attention cross-modale")
-                insights.append("💰 <strong>Bénéfice:</strong> Capture des interactions entre modalités → +10-20% performance sur vidéos complexes")
-            else:
-                insights.append("📹 <strong>Levier:</strong> Intégrer ce modèle multimodal pour extraire des features denses (embeddings) des vidéos TikTok/Instagram")
-                insights.append("💰 <strong>Bénéfice:</strong> Représentation riche du contenu → amélioration F1-score prédiction")
+        # Try LLM analysis first if enabled
+        if use_llm:
+            try:
+                prompt = f"""You are analyzing research papers for a Video Popularity Prediction project.
 
-        # === EXPLAINABILITY ===
-        if any(kw in text for kw in ["explainability", "xai", "interpretability", "shap", "lime", "attention"]):
-            if "shap" in text:
-                insights.append("🔍 <strong>Levier:</strong> Appliquer SHAP values pour identifier quels features (durée vidéo, #hashtags, musique) contribuent le plus à la viralité")
-                insights.append("💰 <strong>Bénéfice:</strong> Dashboard créateurs montrant facteurs de succès → + engagement utilisateurs")
-            elif "attention" in text or "saliency" in text:
-                insights.append("🔍 <strong>Levier:</strong> Visualiser les attention maps pour montrer quelles parties de la vidéo (frames, régions) captent l'engagement")
-                insights.append("💰 <strong>Bénéfice:</strong> Insights actionnables pour créateurs → optimisation thumbnails/hooks")
-            else:
-                insights.append("🔍 <strong>Levier:</strong> Ajouter une couche d'explication des prédictions avec importance des features")
-                insights.append("💰 <strong>Bénéfice:</strong> Transparence → confiance utilisateurs + itérations produit rapides")
+PROJECT CONTEXT:
+We're building a multimodal AI system to predict video virality on TikTok/Instagram. The system analyzes:
+- Visual features (frames, scenes, aesthetics)
+- Audio features (music, voice, BPM)
+- Text features (captions, hashtags, titles)
+- Engagement metrics (CTR, watch time, shares)
+Goal: Help creators optimize content for maximum engagement.
 
-        # === ENGAGEMENT / RECOMMENDATION ===
-        if any(kw in text for kw in ["engagement", "popularity", "viral", "recommendation", "ranking"]):
-            if "tiktok" in text or "instagram" in text or "reels" in text:
-                insights.append("📊 <strong>Levier:</strong> Benchmarker leur métrique d'engagement (watch time, shares, comments weight) pour calibrer notre scoring")
-                insights.append("💰 <strong>Bénéfice:</strong> Alignement avec algos TikTok/Instagram → prédictions réalistes marché")
-            elif "cold start" in text or "new user" in text:
-                insights.append("📊 <strong>Levier:</strong> Implémenter leur stratégie cold-start pour prédire viralité de créateurs avec peu d'historique")
-                insights.append("💰 <strong>Bénéfice:</strong> Couverture 100% créateurs (nouveaux inclus) → + valeur produit")
-            elif "ranking" in text or "scoring" in text:
-                insights.append("📊 <strong>Levier:</strong> Adapter leur fonction de ranking (probabilistic model) pour scorer vidéos par potentiel viral")
-                insights.append("💰 <strong>Bénéfice:</strong> Priorisation contenu high-potential → optimisation créateurs")
-            else:
-                insights.append("📊 <strong>Levier:</strong> Intégrer ces métriques d'engagement dans notre feature engineering (CTR, completion rate, share velocity)")
-                insights.append("💰 <strong>Bénéfice:</strong> Features comportementales → +10-15% recall sur vidéos virales")
+PAPER TO ANALYZE:
+Title: {title}
+Abstract: {abstract[:600]}
+Source: {source}
 
-        # === VIDEO/AUDIO FEATURES ===
-        if any(kw in text for kw in ["scene detection", "shot boundary", "temporal", "video features", "audio features"]):
-            if "scene" in text or "shot" in text:
-                insights.append("🎬 <strong>Levier:</strong> Détecter les transitions/cuts pour calculer 'editing pace' (rythme montage) comme feature de viralité")
-                insights.append("💰 <strong>Bénéfice:</strong> Vidéos dynamiques (>5 cuts/sec) = +30% viralité TikTok → feature exploitable")
-            elif "audio" in text or "sound" in text or "music" in text:
-                insights.append("🎬 <strong>Levier:</strong> Extraire features audio (BPM, genre, trending sounds) pour prédire l'accroche musicale")
-                insights.append("💰 <strong>Bénéfice:</strong> Trending sounds = x2-x5 viralité → recommandation automatique aux créateurs")
-            elif "temporal" in text:
-                insights.append("🎬 <strong>Levier:</strong> Modéliser l'évolution temporelle (LSTM/Transformer) pour capter les patterns d'engagement au fil de la vidéo")
-                insights.append("💰 <strong>Bénéfice:</strong> Prédiction drop-off → suggestions optimisation durée/hook")
-            else:
-                insights.append("🎬 <strong>Levier:</strong> Enrichir le feature set avec ces descripteurs vidéo bas-niveau (color, motion, shot length)")
-                insights.append("💰 <strong>Bénéfice:</strong> Couverture complète du contenu → meilleure généralisation modèle")
+TASK:
+1. Determine if this paper is RELEVANT to our video popularity prediction project
+2. If NOT relevant (e.g., robotics, chip design, medical imaging, general NLP), output exactly: "NOT_RELEVANT"
+3. If RELEVANT, provide specific, actionable insights:
 
-        # === CROSS-PLATFORM / TRANSFER LEARNING ===
-        if any(kw in text for kw in ["cross-platform", "transfer learning", "domain adaptation", "multi-domain"]):
-            insights.append("🔄 <strong>Levier:</strong> Utiliser transfer learning TikTok→Instagram (ou inverse) pour mutualiser les apprentissages entre plateformes")
-            insights.append("💰 <strong>Bénéfice:</strong> Réduction data requirements -50% + prédictions cross-platform → 2 marchés avec 1 modèle")
+LEVERS: (2-4 concrete technical approaches from this paper we can apply)
+- Be specific: mention techniques, architectures, metrics, or methods
+- Example: "Apply attention mechanisms to identify key video frames for engagement"
+- Example: "Use SHAP values to explain which features (hashtags, music) drive virality"
 
-        # === TRANSFORMERS / ARCHITECTURES ===
-        if any(kw in text for kw in ["transformer", "bert", "vit", "clip"]) and not any(ins for ins in insights if "clip" in ins.lower()):
-            if "vit" in text or "vision transformer" in text:
-                insights.append("⚡ <strong>Levier:</strong> Remplacer CNN par Vision Transformer (ViT) pour encoder frames → meilleure capture patterns visuels complexes")
-                insights.append("💰 <strong>Bénéfice:</strong> +5-10% accuracy sur vidéos esthétiques (makeup, food, travel)")
-            else:
-                insights.append("⚡ <strong>Levier:</strong> Implémenter une architecture transformer pour fusionner séquences (frames + audio + metadata)")
-                insights.append("💰 <strong>Bénéfice:</strong> Capture dépendances long-terme → meilleure prédiction vidéos >30sec")
+BENEFITS: (2-3 measurable business/technical benefits)
+- Be concrete: mention metrics, improvements, or outcomes
+- Example: "10-15% improvement in prediction accuracy for 60s+ videos"
+- Example: "Transparent feature importance → creator trust and adoption"
 
-        # === SOURCE-BASED FALLBACKS (more actionable) ===
-        if not insights:
-            if "arxiv" in source:
-                # Try to extract more from title
-                if "survey" in title or "review" in title:
-                    insights.append("📚 <strong>Levier:</strong> Utiliser ce survey pour identifier les SOTA techniques à benchmarker contre notre baseline")
-                    insights.append("💰 <strong>Bénéfice:</strong> Roadmap technique validée académiquement → réduction risque R&D")
-                elif "dataset" in title:
-                    insights.append("📚 <strong>Levier:</strong> Évaluer ce dataset pour enrichir nos données d'entraînement (+ diversité)")
-                    insights.append("💰 <strong>Bénéfice:</strong> + robustesse modèle sur edge cases → -15% false positives")
-                else:
-                    insights.append("📚 <strong>Levier:</strong> Lire pour identifier techniques/architectures à tester dans notre stack ML")
-                    insights.append("💰 <strong>Bénéfice:</strong> Veille académique → innovation continue produit")
+Keep each bullet under 15 words. Be specific to THIS paper's contribution, not generic."""
 
-            elif any(s in source for s in ["netflix", "meta", "google", "youtube", "tiktok", "instagram"]):
-                insights.append("🏢 <strong>Levier:</strong> Reverse-engineer leurs pratiques ML (features, métriques, architectures) pour notre système")
-                insights.append("💰 <strong>Bénéfice:</strong> Alignment avec standards industrie → crédibilité auprès créateurs")
+                messages = [
+                    {"role": "system", "content": "You are a technical analyst specializing in ML research for social media applications."},
+                    {"role": "user", "content": prompt}
+                ]
 
-            elif any(s in source for s in ["vidiq", "tubebuddy"]):
-                insights.append("🎯 <strong>Levier:</strong> Analyser leurs features produit pour identifier gaps dans notre offre (ex: A/B testing thumbnails)")
-                insights.append("💰 <strong>Bénéfice:</strong> Parité concurrentielle → réduction churn utilisateurs")
+                kwargs = {
+                    "model": self.llm_model,
+                    "messages": messages,
+                    "temperature": 0.3,
+                    "timeout": 60,  # Groq is fast, give it time for quality
+                    "max_tokens": 500,  # Allow detailed responses
+                }
+                if self.llm_base_url:
+                    kwargs["api_base"] = self.llm_base_url
 
-            else:
-                # Last resort - still make it somewhat actionable
-                insights.append("💡 <strong>Levier:</strong> Extraire insights techniques/pratiques transférables à notre contexte vidéo")
-                insights.append("💰 <strong>Bénéfice:</strong> Accumulation de connaissances domaine → décisions produit éclairées")
+                response = completion(**kwargs)
+                result = response.choices[0].message.content.strip()
 
-        return "<br>".join(insights)
+                if "NOT_RELEVANT" in result.upper():
+                    return "<span style='color: #9ca3af; font-style: italic;'>Not directly applicable to video popularity prediction</span>"
+
+                # Format as HTML
+                html_output = result.replace("LEVERS:", "<strong>🎯 Levers:</strong>")
+                html_output = html_output.replace("BENEFITS:", "<br><br><strong>💰 Benefits:</strong>")
+                html_output = html_output.replace("Levers:", "<strong>🎯 Levers:</strong>")
+                html_output = html_output.replace("Benefits:", "<br><br><strong>💰 Benefits:</strong>")
+                return html_output
+
+            except Exception as e:
+                # Log to console
+                console.print(f"[yellow]LLM analysis failed for '{title[:40]}...': {e}[/yellow]")
+                console.print(f"[dim]Using keyword fallback instead[/dim]")
+
+                # Store error for display in email
+                error_msg = str(e)
+                if len(error_msg) > 150:
+                    error_msg = error_msg[:150] + "..."
+                llm_error = error_msg
+
+        # Keyword-based fallback - context-aware analysis
+
+        # 1. Check if truly relevant to video popularity (STRICT filtering)
+        video_relevant = any(kw in text for kw in [
+            "video understanding", "video popularity", "video engagement", "video viral",
+            "tiktok", "instagram reels", "youtube", "social media video",
+            "short video", "video recommendation"
+        ])
+
+        # Exclude if multimodal but not video-related
+        non_video_contexts = ["robot", "robotics", "chip", "floorplan", "navigation",
+                               "autonomous", "embodied", "manipulation", "grasping"]
+        is_non_video = any(kw in text for kw in non_video_contexts)
+
+        if is_non_video or not video_relevant:
+            # Check if it has engagement/recommendation focus
+            has_engagement = any(kw in text for kw in ["engagement", "popularity", "viral", "recommendation"])
+            has_explainability = any(kw in text for kw in ["explainability", "xai", "interpretability"])
+
+            if not (has_engagement or has_explainability):
+                return "<span style='color: #9ca3af; font-style: italic;'>Not directly applicable to video popularity prediction</span>"
+
+        # 2. Generate context-specific insights based on paper content
+        levers = []
+        benefits = []
+
+        # Video understanding techniques
+        if any(kw in text for kw in ["video understanding", "temporal", "video-llm"]):
+            levers.append("• Apply temporal modeling for video sequence analysis")
+            benefits.append("• Better capture of video dynamics → +15% accuracy")
+
+        # Multimodal fusion
+        if any(kw in text for kw in ["multimodal", "vision-language", "cross-modal", "fusion"]):
+            levers.append("• Implement multimodal fusion (vision+audio+text)")
+            benefits.append("• Richer feature representation → improved F1-score")
+
+        # Engagement/popularity specific
+        if any(kw in text for kw in ["engagement", "popularity", "viral", "recommendation"]):
+            levers.append("• Adapt engagement metrics from this research")
+            benefits.append("• Alignment with real-world virality patterns")
+
+        # Explainability
+        if any(kw in text for kw in ["explainability", "xai", "interpretability", "attention"]):
+            levers.append("• Add explainability layer for feature importance")
+            benefits.append("• Transparent predictions → creator trust")
+
+        # Long video handling
+        if any(kw in text for kw in ["long video", "efficient", "token selection", "compression"]):
+            levers.append("• Optimize for long-form video processing efficiency")
+            benefits.append("• Handle 60s+ videos → broader coverage")
+
+        # Platform-specific
+        if any(kw in text for kw in ["tiktok", "instagram", "youtube", "social media"]):
+            levers.append("• Benchmark against platform-specific algorithms")
+            benefits.append("• Platform-aware predictions → +20% relevance")
+
+        # Fallback if nothing specific matched
+        if not levers:
+            levers.append("• Extract techniques applicable to video prediction")
+            levers.append("• Benchmark architecture against current model")
+
+        if not benefits:
+            benefits.append("• Improved prediction accuracy")
+            benefits.append("• Actionable insights for creators")
+
+        # Take top 3 levers and 2 benefits
+        levers_html = "<strong>🎯 Levers:</strong><br>" + "<br>".join(levers[:3])
+        benefits_html = "<br><br><strong>💰 Benefits:</strong><br>" + "<br>".join(benefits[:2])
+
+        # Add error message if LLM failed
+        error_html = ""
+        if llm_error:
+            error_html = f"<br><br><div style='background: #fef3c7; border-left: 3px solid #f59e0b; padding: 8px 12px; margin-top: 8px; border-radius: 4px;'><strong style='color: #92400e;'>⚠️ LLM analysis failed:</strong><br><span style='color: #78350f; font-size: 12px;'>{llm_error}</span><br><span style='color: #78350f; font-size: 12px; font-style: italic;'>Using keyword-based fallback analysis above</span></div>"
+
+        return levers_html + benefits_html + error_html
 
     def _detect_article_theme(self, doc: Dict[str, Any]) -> tuple[str, str]:
         """
@@ -171,45 +266,57 @@ class EmailService:
         text = f"{title} {abstract}"
 
         # Theme detection with priority order (most specific first)
+        # Requires 2+ keyword matches or 1 very specific keyword for stricter filtering
         themes = [
-            # (keywords, theme_name, color)
-            (["multimodal", "vision-language", "vlm", "video understanding", "video-llm", "clip", "vision transformer", "vit", "visual", "image-text"],
-             "Multimodal & VLM", "#8b5cf6"),  # Purple
+            # (keywords, required_matches, theme_name, color)
+            (["multimodal", "vision-language", "vlm", "video understanding", "video-llm", "visual-language"],
+             1, "Multimodal & VLM", "#8b5cf6"),  # Purple - very specific keywords
 
-            (["engagement", "popularity", "viral", "recommendation", "ranking", "tiktok", "instagram", "reels", "social media"],
-             "Social Media & Engagement", "#ec4899"),  # Pink
+            (["video popularity", "video viral", "tiktok", "instagram reels", "shorts algorithm"],
+             1, "Social Media & Engagement", "#ec4899"),  # Pink - very specific
 
-            (["explainability", "xai", "interpretability", "shap", "lime", "attention mechanism", "saliency", "faithfulness"],
-             "Explainability & XAI", "#f59e0b"),  # Orange
+            (["explainability", "xai", "interpretability", "shap values", "lime explanation"],
+             1, "Explainability & XAI", "#f59e0b"),  # Orange - specific
 
-            (["3d", "geometry", "geometric", "spatial", "mesh", "rendering", "scene", "reconstruction"],
-             "Computer Vision & 3D", "#10b981"),  # Green
+            (["3d reconstruction", "3d generation", "mesh generation", "neural rendering", "nerf"],
+             1, "Computer Vision & 3D", "#10b981"),  # Green - specific
 
-            (["transformer", "bert", "gpt", "llm", "language model", "embedding", "token"],
-             "LLM & NLP", "#3b82f6"),  # Blue
+            (["large language model", "llm", "gpt", "transformer language", "bert"],
+             1, "LLM & NLP", "#3b82f6"),  # Blue - specific
 
-            (["diffusion", "generative", "gan", "vae", "synthesis", "generation", "synthetic"],
-             "Generative AI", "#ec4899"),  # Pink
+            (["diffusion model", "stable diffusion", "generative adversarial", "gan", "vae", "image generation"],
+             1, "Generative AI", "#ec4899"),  # Pink - specific
 
-            (["detection", "classification", "segmentation", "object detection", "recognition"],
-             "Detection & Classification", "#14b8a6"),  # Teal
+            (["object detection", "image classification", "semantic segmentation", "instance segmentation"],
+             1, "Detection & Classification", "#14b8a6"),  # Teal - specific
 
-            (["agent", "reasoning", "planning", "autonomous", "multi-agent"],
-             "AI Agents & Reasoning", "#a855f7"),  # Purple
+            (["ai agent", "autonomous agent", "multi-agent", "agent reasoning", "agent planning"],
+             1, "AI Agents & Reasoning", "#a855f7"),  # Purple - specific
 
-            (["misinformation", "fake", "bot", "social", "political", "content moderation"],
-             "Social AI & Misinformation", "#f59e0b"),  # Orange
+            (["misinformation detection", "fake news", "content moderation", "social media manipulation"],
+             1, "Social AI & Misinformation", "#f59e0b"),  # Orange - specific
 
-            (["dataset", "benchmark", "evaluation", "metric", "survey", "review"],
-             "Datasets & Benchmarks", "#6366f1"),  # Indigo
+            (["benchmark dataset", "evaluation benchmark", "survey paper", "review paper"],
+             1, "Datasets & Benchmarks", "#6366f1"),  # Indigo - specific
 
-            (["transfer learning", "domain adaptation", "few-shot", "zero-shot", "fine-tuning"],
-             "Transfer Learning", "#8b5cf6"),  # Purple
+            (["transfer learning", "domain adaptation", "few-shot learning", "zero-shot learning"],
+             1, "Transfer Learning", "#8b5cf6"),  # Purple - specific
+
+            # Generic fallback categories (require 2+ matches)
+            (["recommendation", "ranking", "engagement", "popularity"],
+             2, "Recommendation Systems", "#ec4899"),  # Pink - generic, needs 2+
+
+            (["video", "visual", "image", "computer vision"],
+             2, "Computer Vision", "#10b981"),  # Green - generic, needs 2+
+
+            (["attention", "transformer", "neural network"],
+             2, "Deep Learning", "#3b82f6"),  # Blue - generic, needs 2+
         ]
 
-        # Find matching theme
-        for keywords, theme_name, color in themes:
-            if any(kw in text for kw in keywords):
+        # Find matching theme with required match count
+        for keywords, required_matches, theme_name, color in themes:
+            match_count = sum(1 for kw in keywords if kw in text)
+            if match_count >= required_matches:
                 return (theme_name, color)
 
         # Default theme
@@ -338,7 +445,7 @@ class EmailService:
             """
 
             for doc in recent_docs:
-                title = doc.get("title", "Sans titre")
+                title = doc.get("title", "Untitled")
                 url = doc.get("url", "#")
                 date = doc.get("published_date", "")
 
@@ -368,7 +475,7 @@ class EmailService:
             </div>
             <div style='background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #ef4444; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;'>
                 <div style='color: #991b1b; font-size: 13px; font-weight: 600;'>
-                    ⭐⭐⭐ Très pertinent | ⭐⭐ Pertinent | ⭐ À surveiller
+                    ⭐⭐⭐ High relevance | ⭐⭐ Medium relevance | ⭐ Monitor
                 </div>
             </div>
             {competitor_html}
@@ -421,8 +528,8 @@ class EmailService:
                 summary = summary[:350] + "..."
 
             # If still empty, provide a minimal fallback
-            if not summary or summary == "No summary available" or summary == "Résumé non disponible":
-                summary = "Résumé non disponible. <a href='" + url + "' target='_blank'>Lire l'article complet →</a>"
+            if not summary or summary == "No summary available" or summary == "Summary unavailable":
+                summary = "Summary unavailable. <a href='" + url + "' target='_blank'>Read full article →</a>"
 
             date = doc.get("published_date", "")
             source = doc.get("source", "unknown").replace('_', ' ').title()
@@ -460,7 +567,7 @@ class EmailService:
                     <!-- Article Summary -->
                     <div style='background: #f9fafb; border-left: 3px solid #d1d5db; padding: 14px 16px; border-radius: 6px; margin-bottom: 16px;'>
                         <div style='color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;'>
-                            📄 Résumé
+                            📄 Summary
                         </div>
                         <div style='color: #4b5563; font-size: 15px; line-height: 1.7;'>
                             {summary}
@@ -470,7 +577,7 @@ class EmailService:
                     <!-- Video Popularity Insight Box -->
                     <div style='background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;'>
                         <div style='font-weight: 700; color: #92400e; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;'>
-                            🎯 Pour Le Projet Video Popularity
+                            🎯 For Video Popularity Project
                         </div>
                         <div style='color: #78350f; font-size: 14px; line-height: 1.6;'>
                             {vp_insight}
@@ -481,7 +588,7 @@ class EmailService:
             """
 
         if len(new_docs) > max_articles:
-            docs_html += f"<div style='color: #6b7280; font-style: italic; text-align: center; padding: 20px; background: #f9fafb; border-radius: 8px;'>... et {len(new_docs) - max_articles} autres articles disponibles dans la base de données</div>"
+            docs_html += f"<div style='color: #6b7280; font-style: italic; text-align: center; padding: 20px; background: #f9fafb; border-radius: 8px;'>... and {len(new_docs) - max_articles} more articles in database</div>"
 
         # Build full HTML
         html = f"""
@@ -515,10 +622,10 @@ class EmailService:
         <div style='background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); border: 2px solid #3b82f6; padding: 20px 24px; border-radius: 12px; margin-bottom: 30px;'>
             <div style='display: flex; align-items: center; margin-bottom: 8px;'>
                 <div style='font-size: 24px; margin-right: 12px;'>🎬</div>
-                <h2 style='margin: 0; color: #1e40af; font-size: 18px; font-weight: 700;'>Contexte: Prédiction de Popularité Vidéo</h2>
+                <h2 style='margin: 0; color: #1e40af; font-size: 18px; font-weight: 700;'>Context: Video Popularity Prediction</h2>
             </div>
             <p style='margin: 0; color: #1e3a8a; font-size: 14px; line-height: 1.6;'>
-                Projet multimodal (vision, audio, texte) pour prédire la popularité de vidéos sur TikTok/Instagram et expliquer les facteurs de succès.
+                Multimodal project (vision, audio, text) to predict video popularity on TikTok/Instagram and explain success factors.
             </p>
         </div>
 
@@ -526,7 +633,7 @@ class EmailService:
         <div style='background: white; padding: 28px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);'>
             <div style='display: flex; align-items: center; margin-bottom: 20px;'>
                 <div style='width: 4px; height: 24px; background: linear-gradient(180deg, #f59e0b 0%, #eab308 100%); border-radius: 2px; margin-right: 12px;'></div>
-                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Résumé par Thème</h2>
+                <h2 style='margin: 0; color: #111827; font-size: 22px; font-weight: 700;'>📊 Summary by Theme</h2>
             </div>
             <div style='color: #374151; font-size: 15px;'>
 {self._generate_theme_summary(new_docs[:max_articles])}
@@ -536,12 +643,12 @@ class EmailService:
         <!-- Stats Grid -->
         <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;'>
             <div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);'>
-                <div style='font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>{'Articles dans ce Digest' if full_database else f'Nouveaux {digest_type}'}</div>
+                <div style='font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>{'Articles in Digest' if full_database else f'New {digest_type}'}</div>
                 <div style='font-size: 36px; font-weight: 800;'>{len(new_docs)}</div>
                 <div style='font-size: 13px; opacity: 0.8; margin-top: 4px;'>articles</div>
             </div>
             <div style='background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);'>
-                <div style='font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Base Totale</div>
+                <div style='font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Total Database</div>
                 <div style='font-size: 36px; font-weight: 800;'>{stats.get("total_documents", 0)}</div>
                 <div style='font-size: 13px; opacity: 0.8; margin-top: 4px;'>{stats.get("total_chunks", 0)} chunks</div>
             </div>
@@ -551,10 +658,10 @@ class EmailService:
         <div style='margin-bottom: 30px;'>
             <div style='display: flex; align-items: center; margin-bottom: 24px;'>
                 <div style='width: 5px; height: 32px; background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%); border-radius: 3px; margin-right: 14px;'></div>
-                <h2 style='margin: 0; color: #111827; font-size: 26px; font-weight: 800;'>📚 {'Tous les Articles' if full_database else 'Nouveaux Articles'}</h2>
+                <h2 style='margin: 0; color: #111827; font-size: 26px; font-weight: 800;'>📚 {'All Articles' if full_database else 'New Articles'}</h2>
             </div>
 
-            {docs_html if new_docs else "<div style='background: white; padding: 40px; border-radius: 12px; text-align: center; color: #6b7280; font-style: italic;'>Aucun document disponible.</div>"}
+            {docs_html if new_docs else "<div style='background: white; padding: 40px; border-radius: 12px; text-align: center; color: #6b7280; font-style: italic;'>No documents available.</div>"}
         </div>
 
         {self._format_competitor_section(competitor_docs) if competitor_docs else ''}
@@ -629,17 +736,17 @@ class EmailService:
             text_content = f"""
 Tech Watch {digest_type} Digest - {datetime.now().strftime('%d/%m/%Y')}
 
-RÉSUMÉ
-======
+SUMMARY
+=======
 {summary}
 
-STATISTIQUES
-============
+STATISTICS
+==========
 {doc_label}: {len(new_docs)}
-Total en base : {stats.get('total_documents', 0)} documents
+Total in database: {stats.get('total_documents', 0)} documents
 
-NOUVEAUX CONTENUS
-=================
+NEW CONTENT
+===========
 """
             for doc in new_docs[:20]:  # Limit to 20 in plain text
                 text_content += f"\n• {doc.get('title', 'Sans titre')}\n"
