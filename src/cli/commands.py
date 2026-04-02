@@ -476,9 +476,9 @@ def digest(
             console.print(f"[cyan]  Regular content: {len(docs_to_add)} docs[/cyan]")
             console.print(f"[cyan]  Competitor news: {len(competitor_docs_to_add)} docs[/cyan]")
 
-            # If no new regular documents, get last 10 from database
+            # If no new regular documents, get last 15 from database
             if len(docs_to_add) == 0:
-                console.print("[yellow]⚠ No new regular documents found. Getting last 10 from database...[/yellow]")
+                console.print("[yellow]⚠ No new regular documents found. Getting last 15 from database...[/yellow]")
 
                 all_data = vector_db.collection.get(include=["metadatas", "documents"])
                 if all_data and all_data.get("metadatas"):
@@ -519,14 +519,14 @@ def digest(
                         metadata["abstract"] = abstract[:500] if abstract else "No summary available"
                         seen_doc_ids[doc_id] = metadata
 
-                    # Sort by date and take last 10
+                    # Sort by date and take last 15
                     all_docs = list(seen_doc_ids.values())
                     sorted_docs = sorted(
                         all_docs,
                         key=lambda x: x.get("published_date", "1970-01-01"),
                         reverse=True
                     )
-                    docs_to_add = sorted_docs[:10]
+                    docs_to_add = sorted_docs[:15]
                     console.print(f"[green]✓ Retrieved {len(docs_to_add)} recent regular documents[/green]")
 
                     # Process ALL competitor docs (always include them)
@@ -636,8 +636,8 @@ When summarizing, please mention how each article could benefit this project."""
 
             console.print(Panel(
                 f"{doc_count_label}\n"
-                f"[bold]Total en base:[/bold] {stats['total_documents']} documents\n\n"
-                f"[bold cyan]Résumé:[/bold cyan]\n{summary_result[:500]}...",
+                f"[bold]Total in database:[/bold] {stats['total_documents']} documents\n\n"
+                f"[bold cyan]Summary:[/bold cyan]\n{summary_result[:500]}...",
                 title=f"[bold yellow]{digest_type} Digest Preview[/bold yellow]",
                 border_style="yellow",
             ))
@@ -698,6 +698,11 @@ When summarizing, please mention how each article could benefit this project."""
             smtp_password=settings.smtp_password,
             from_email=settings.email_from,
             use_tls=settings.email_use_tls,
+            llm_provider=settings.llm_provider,
+            llm_model=settings.llm_model,
+            llm_api_key=settings.llm_api_key,
+            llm_base_url=settings.llm_base_url,
+            llm_temperature=settings.llm_temperature,
         )
 
         success = email_service.send_digest(
@@ -763,6 +768,11 @@ def test_email():
             smtp_password=settings.smtp_password,
             from_email=settings.email_from,
             use_tls=settings.email_use_tls,
+            llm_provider=settings.llm_provider,
+            llm_model=settings.llm_model,
+            llm_api_key=settings.llm_api_key,
+            llm_base_url=settings.llm_base_url,
+            llm_temperature=settings.llm_temperature,
         )
 
         success = email_service.test_connection()
