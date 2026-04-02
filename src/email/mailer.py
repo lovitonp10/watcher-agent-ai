@@ -10,6 +10,7 @@ from datetime import datetime
 from rich.console import Console
 from litellm import completion
 import os
+import re
 
 console = Console()
 
@@ -121,20 +122,27 @@ Source: {source}
 
 TASK:
 1. Determine if this paper is RELEVANT to our video popularity prediction project
-2. If NOT relevant (e.g., robotics, chip design, medical imaging, general NLP), output exactly: "NOT_RELEVANT"
-3. If RELEVANT, provide specific, actionable insights:
+2. If NOT relevant (e.g., robotics, chip design, medical imaging, general NLP), output ONLY: "NOT_RELEVANT"
+3. If RELEVANT, provide specific, actionable insights in EXACTLY this format:
 
-LEVERS: (2-4 concrete technical approaches from this paper we can apply)
-- Be specific: mention techniques, architectures, metrics, or methods
-- Example: "Apply attention mechanisms to identify key video frames for engagement"
-- Example: "Use SHAP values to explain which features (hashtags, music) drive virality"
+LEVERS:
+• [Specific technical approach from paper 1]
+• [Specific technical approach from paper 2]
+• [Specific technical approach from paper 3]
 
-BENEFITS: (2-3 measurable business/technical benefits)
-- Be concrete: mention metrics, improvements, or outcomes
-- Example: "10-15% improvement in prediction accuracy for 60s+ videos"
-- Example: "Transparent feature importance → creator trust and adoption"
+BENEFITS:
+• [Concrete business/technical benefit 1]
+• [Concrete business/technical benefit 2]
 
-Keep each bullet under 15 words. Be specific to THIS paper's contribution, not generic."""
+CRITICAL FORMAT RULES:
+- Use bullet symbol • (not * or -)
+- Start directly with "LEVERS:" (no prefix like "RELEVANT" or emojis)
+- Each bullet under 15 words
+- Be specific to THIS paper's contribution
+- Examples:
+  Good: "• Apply entropy-based token selection (40% memory reduction)"
+  Bad: "• Use advanced techniques for better results"
+"""
 
                 messages = [
                     {"role": "system", "content": "You are a technical analyst specializing in ML research for social media applications."},
@@ -157,11 +165,29 @@ Keep each bullet under 15 words. Be specific to THIS paper's contribution, not g
                 if "NOT_RELEVANT" in result.upper():
                     return "<span style='color: #9ca3af; font-style: italic;'>Not directly applicable to video popularity prediction</span>"
 
+                # Clean up LLM output
+                # Remove any prefix before LEVERS (like "RELEVANT", "This paper is relevant", etc.)
+                if "LEVERS:" in result:
+                    result = "LEVERS:" + result.split("LEVERS:", 1)[1]
+
+                # Normalize bullets (* or - or • → •)
+                result = re.sub(r'\n\s*[\*\-]\s+', '\n• ', result)
+
+                # Remove duplicate emojis if LLM added them
+                result = result.replace("🎯 LEVERS:", "LEVERS:")
+                result = result.replace("💰 BENEFITS:", "BENEFITS:")
+                result = result.replace("🎯 Levers:", "LEVERS:")
+                result = result.replace("💰 Benefits:", "BENEFITS:")
+
                 # Format as HTML
-                html_output = result.replace("LEVERS:", "<strong>🎯 Levers:</strong>")
-                html_output = html_output.replace("BENEFITS:", "<br><br><strong>💰 Benefits:</strong>")
-                html_output = html_output.replace("Levers:", "<strong>🎯 Levers:</strong>")
-                html_output = html_output.replace("Benefits:", "<br><br><strong>💰 Benefits:</strong>")
+                html_output = result.replace("LEVERS:", "<strong>🎯 Levers:</strong><br>")
+                html_output = html_output.replace("BENEFITS:", "<br><br><strong>💰 Benefits:</strong><br>")
+                html_output = html_output.replace("Levers:", "<strong>🎯 Levers:</strong><br>")
+                html_output = html_output.replace("Benefits:", "<br><br><strong>💰 Benefits:</strong><br>")
+
+                # Convert line breaks to HTML breaks
+                html_output = html_output.replace("\n", "<br>")
+
                 return html_output
 
             except Exception as e:
