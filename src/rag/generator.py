@@ -66,7 +66,8 @@ class Generator:
         if self.base_url and self.provider not in ["groq", "openai", "anthropic", "mistral"]:
             os.environ[f"{self.provider.upper()}_API_BASE"] = self.base_url
 
-        console.print(f"[dim]Using LLM: {self.provider}/{self.model}[/dim]")
+        # Log model (already contains provider prefix from _format_model_name)
+        console.print(f"[dim]Using LLM: {self.model}[/dim]")
 
     def _format_model_name(self, model: str) -> str:
         """

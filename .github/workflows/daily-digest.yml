@@ -2,8 +2,9 @@ name: Daily Tech Watch Digest
 
 on:
   schedule:
-    # Tous les jours à 8h45 UTC (9h45 FR hiver, 10h45 FR été)
-    - cron: '45 6 * * *'
+    # Du lundi au vendredi à 8h45 UTC (9h45 FR hiver, 10h45 FR été)
+    # Exclut samedi (6) et dimanche (0)
+    - cron: '45 6 * * 1-5'
   workflow_dispatch:  # Permet de lancer manuellement
 
 jobs:
