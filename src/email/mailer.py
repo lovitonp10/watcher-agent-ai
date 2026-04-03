@@ -101,9 +101,11 @@ class EmailService:
         text = f"{title} {abstract}".lower()
 
         llm_error = None  # Track LLM errors for display in email
+        llm_attempted = False  # Track if LLM was attempted
 
         # Try LLM analysis first if enabled
         if use_llm:
+            llm_attempted = True
             try:
                 prompt = f"""You are analyzing research papers for a Video Popularity Prediction project.
 
@@ -162,8 +164,19 @@ CRITICAL FORMAT RULES:
                 response = completion(**kwargs)
                 result = response.choices[0].message.content.strip()
 
+                # Log successful LLM call
+                console.print(f"[green]✓ LLM responded for '{title[:40]}...'[/green]")
+
                 if "NOT_RELEVANT" in result.upper():
                     return "<span style='color: #9ca3af; font-style: italic;'>Not directly applicable to video popularity prediction</span>"
+
+                # Validate LLM output format
+                if "LEVERS:" not in result.upper() and "BENEFITS:" not in result.upper():
+                    console.print(f"[yellow]Warning: LLM response missing LEVERS/BENEFITS structure for '{title[:40]}...'[/yellow]")
+                    console.print(f"[dim]LLM response preview: {result[:200]}...[/dim]")
+                    # Set error and fall back to keywords
+                    llm_error = f"Invalid format: Response missing LEVERS/BENEFITS structure. Got: '{result[:100]}...'"
+                    raise ValueError(f"Invalid LLM response format")
 
                 # Clean up LLM output
                 # Remove any prefix before LEVERS (like "RELEVANT", "This paper is relevant", etc.)
@@ -188,17 +201,19 @@ CRITICAL FORMAT RULES:
                 # Convert line breaks to HTML breaks
                 html_output = html_output.replace("\n", "<br>")
 
+                console.print(f"[green]✓ Successfully formatted LLM output for '{title[:40]}...'[/green]")
                 return html_output
 
             except Exception as e:
-                # Log to console
+                # Log to console with full error details
                 console.print(f"[yellow]LLM analysis failed for '{title[:40]}...': {e}[/yellow]")
                 console.print(f"[dim]Using keyword fallback instead[/dim]")
+                console.print(f"[dim]LLM Config: provider={self.llm_provider}, model={self.llm_model}[/dim]")
 
-                # Store error for display in email
-                error_msg = str(e)
-                if len(error_msg) > 150:
-                    error_msg = error_msg[:150] + "..."
+                # Store error for display in email (with more context)
+                error_msg = f"❌ LLM Error: {str(e)}"
+                if len(error_msg) > 200:
+                    error_msg = error_msg[:200] + "..."
                 llm_error = error_msg
 
         # Keyword-based fallback - context-aware analysis
@@ -270,10 +285,18 @@ CRITICAL FORMAT RULES:
         levers_html = "<strong>🎯 Levers:</strong><br>" + "<br>".join(levers[:3])
         benefits_html = "<br><br><strong>💰 Benefits:</strong><br>" + "<br>".join(benefits[:2])
 
-        # Add error message if LLM failed
+        # ALWAYS show warning if fallback was used (either LLM failed or wasn't attempted)
         error_html = ""
-        if llm_error:
-            error_html = f"<br><br><div style='background: #fef3c7; border-left: 3px solid #f59e0b; padding: 8px 12px; margin-top: 8px; border-radius: 4px;'><strong style='color: #92400e;'>⚠️ LLM analysis failed:</strong><br><span style='color: #78350f; font-size: 12px;'>{llm_error}</span><br><span style='color: #78350f; font-size: 12px; font-style: italic;'>Using keyword-based fallback analysis above</span></div>"
+        if llm_attempted:
+            # LLM was attempted but failed
+            if llm_error:
+                error_html = f"<br><br><div style='background: #fee2e2; border-left: 4px solid #dc2626; padding: 12px 16px; margin-top: 12px; border-radius: 6px;'><strong style='color: #991b1b; font-size: 14px;'>🚨 LLM Analysis Failed</strong><br><span style='color: #b91c1c; font-size: 13px; margin-top: 4px; display: block;'>{llm_error}</span><br><span style='color: #991b1b; font-size: 12px; font-style: italic; margin-top: 6px; display: block;'>⚠️ Using generic keyword-based analysis above (not article-specific)</span><br><span style='color: #991b1b; font-size: 11px; margin-top: 4px; display: block;'>Config: {self.llm_provider}/{self.llm_model}</span></div>"
+            else:
+                # LLM attempted but returned invalid format (no exception but also no valid output)
+                error_html = f"<br><br><div style='background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-top: 12px; border-radius: 6px;'><strong style='color: #92400e; font-size: 14px;'>⚠️ LLM Returned Invalid Format</strong><br><span style='color: #78350f; font-size: 12px; margin-top: 4px; display: block;'>The LLM responded but didn't follow the expected structure (missing LEVERS/BENEFITS).</span><br><span style='color: #78350f; font-size: 12px; font-style: italic; margin-top: 6px; display: block;'>Using generic keyword-based analysis above</span></div>"
+        else:
+            # LLM wasn't attempted at all (use_llm=False)
+            error_html = f"<br><br><div style='background: #e0e7ff; border-left: 4px solid #6366f1; padding: 12px 16px; margin-top: 12px; border-radius: 6px;'><strong style='color: #3730a3; font-size: 14px;'>ℹ️ LLM Not Used</strong><br><span style='color: #4338ca; font-size: 12px; margin-top: 4px; display: block;'>LLM analysis was disabled for this article (use_llm=False)</span><br><span style='color: #4338ca; font-size: 12px; font-style: italic; margin-top: 6px; display: block;'>Using generic keyword-based analysis above</span></div>"
 
         return levers_html + benefits_html + error_html
 
