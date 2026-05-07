@@ -750,7 +750,7 @@ CRITICAL FORMAT RULES:
         Send digest email (daily/weekly, new docs or full database).
 
         Args:
-            to_email: Recipient email address
+            to_email: Recipient email address (can be comma-separated list)
             new_docs: List of documents (new or full database)
             summary: AI-generated summary
             stats: Database statistics
@@ -764,6 +764,13 @@ CRITICAL FORMAT RULES:
         """
         if competitor_docs is None:
             competitor_docs = []
+
+        # Parse multiple email addresses (comma-separated)
+        recipients = [email.strip() for email in to_email.split(",") if email.strip()]
+        if not recipients:
+            console.print("[red]Error: No valid recipient email addresses[/red]")
+            return False
+
         try:
             # Determine subject line
             if full_database:
@@ -775,7 +782,7 @@ CRITICAL FORMAT RULES:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = self.from_email
-            msg["To"] = to_email
+            msg["To"] = ", ".join(recipients)  # Display all recipients
 
             # Create HTML content
             html_content = self._format_html_digest(new_docs, summary, stats, digest_type, full_database, max_articles, competitor_docs)
@@ -821,7 +828,7 @@ NEW CONTENT
             server.send_message(msg)
             server.quit()
 
-            console.print(f"[green]✓ Email sent successfully to {to_email}[/green]")
+            console.print(f"[green]✓ Email sent successfully to {len(recipients)} recipient(s): {', '.join(recipients)}[/green]")
             return True
 
         except Exception as e:
