@@ -14,12 +14,13 @@ summary_mode: "short"
 default_frequency: "daily"
 
 # Maximum number of articles to show in email (others mentioned as "... and X more")
-max_articles_in_email: 15
+max_articles_in_email: 10
 
 # Maximum number of documents to include in summary generation
 # Prevents token overflow for large databases
 # Lower this if Ollama times out (use 20-30 for slow local LLMs)
-max_docs_for_summary: 20
+# IMPORTANT: Groq free tier has 12K tokens/min limit - keep this low (5-10) to avoid rate limits
+max_docs_for_summary: 10
 
 # Notes:
 # - Email credentials (SMTP_*, EMAIL_*) are in .env
